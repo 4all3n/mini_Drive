@@ -1,6 +1,8 @@
 package com.minicloud.client.controllers;
 
+
 import com.minicloud.client.network.AuthNetworkService;
+import com.minicloud.client.network.FileNetworkService;
 import com.minicloud.client.ui.DashboardScreen;
 import com.minicloud.client.ui.LoginScreen;
 import com.minicloud.client.ui.RegisterScreen;
@@ -11,10 +13,12 @@ public class SceneManager {
 
     private Stage primaryStage;
     private AuthNetworkService networkService;
+    private FileNetworkService fileNetworkService;
 
     public SceneManager(Stage primaryStage) {
         this.primaryStage = primaryStage;
         this.networkService = new AuthNetworkService();
+        this.fileNetworkService = new FileNetworkService();
     }
 
     public void showLoginScreen() {
@@ -96,13 +100,47 @@ public class SceneManager {
     public void showDashboardScreen(String username) {
         DashboardScreen dashboard = new DashboardScreen(username);
         
-       
         dashboard.getLogoutButton().setOnAction(e -> showLoginScreen());
-        
-       
-        
 
-        Scene scene = new Scene(dashboard.getView(), 600, 500);
+        // --- NEW: Load files immediately when the dashboard opens ---
+        java.util.List<DashboardScreen.FileRecord> existingFiles = fileNetworkService.fetchUserFiles(username);
+        dashboard.getTable().getItems().addAll(existingFiles);
+        
+        dashboard.getUploadButton().setOnAction(e -> {
+            javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+            fileChooser.setTitle("Select File to Upload");
+            java.io.File selectedFile = fileChooser.showOpenDialog(primaryStage);
+            
+            if (selectedFile != null) {
+               dashboard.getUploadButton().setText("Uploading...");
+                dashboard.getUploadButton().setDisable(true);
+
+                // Now it returns a String instead of a boolean
+                String resultMessage = fileNetworkService.uploadFile(selectedFile, username);
+                boolean success = "SUCCESS".equals(resultMessage);
+                
+                if (success) {
+                    dashboard.getTable().getItems().clear(); 
+                    java.util.List<DashboardScreen.FileRecord> freshFiles = fileNetworkService.fetchUserFiles(username);
+                    dashboard.getTable().getItems().addAll(freshFiles); 
+                }
+
+                // Show the dynamic alert message
+                javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
+                    success ? javafx.scene.control.Alert.AlertType.INFORMATION : javafx.scene.control.Alert.AlertType.ERROR
+                );
+                alert.setTitle("Upload Status");
+                alert.setHeaderText(null);
+                // If success, say so. Otherwise, show the exact error message from the server!
+                alert.setContentText(success ? "File uploaded successfully!" : resultMessage);
+                alert.showAndWait();
+
+                dashboard.getUploadButton().setText("+ Upload File");
+                dashboard.getUploadButton().setDisable(false);
+            }
+        });
+
+        Scene scene = new Scene(dashboard.getView(), 800, 600);
         primaryStage.setTitle("Mini Cloud - Dashboard");
         primaryStage.setScene(scene);
     }

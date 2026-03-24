@@ -15,6 +15,9 @@ public class DashboardScreen {
     private BorderPane view;
     private Button uploadButton;
     private Button logoutButton;
+    
+    // 1. Declare the table at the class level so the whole file can see it
+    private TableView<FileRecord> table; 
 
     public static class FileRecord {
         private String fileName;
@@ -70,8 +73,8 @@ public class DashboardScreen {
 
         headerBox.getChildren().addAll(sectionTitle, uploadButton);
 
-        // --- DARK TABLE ---
-        TableView<FileRecord> table = new TableView<>();
+        // 2. Initialize the class-level variable here (removed 'TableView<FileRecord>' from the start)
+        table = new TableView<>(); 
         table.setStyle("-fx-control-inner-background: #1E1E1E; -fx-background-color: #1E1E1E; -fx-table-cell-border-color: #2D2D2D; -fx-text-fill: white; -fx-border-color: #2D2D2D; -fx-border-radius: 5;");
         
         TableColumn<FileRecord, String> nameCol = new TableColumn<>("File Name");
@@ -88,12 +91,6 @@ public class DashboardScreen {
 
         table.getColumns().addAll(nameCol, typeCol, sizeCol);
 
-        table.getItems().addAll(
-            new FileRecord("project_proposal_v2", "PDF", "2.4 MB"),
-            new FileRecord("vacation_photo", "JPG", "4.1 MB"),
-            new FileRecord("system_logs", "TXT", "12 KB")
-        );
-
         mainContent.getChildren().addAll(headerBox, table);
         view.setCenter(mainContent);
     }
@@ -101,4 +98,7 @@ public class DashboardScreen {
     public BorderPane getView() { return view; }
     public Button getLogoutButton() { return logoutButton; }
     public Button getUploadButton() { return uploadButton; }
+    
+    // 3. Add the getter so SceneManager can inject the file data
+    public TableView<FileRecord> getTable() { return table; } 
 }
