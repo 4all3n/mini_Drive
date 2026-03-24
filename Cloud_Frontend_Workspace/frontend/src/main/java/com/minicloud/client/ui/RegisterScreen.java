@@ -21,51 +21,50 @@ public class RegisterScreen {
     private Label statusLabel;
 
     public RegisterScreen() {
-        // 1. Initialize the layout container
-        view = new VBox(15); 
+        view = new VBox(); 
         view.setAlignment(Pos.CENTER);
-        view.setPadding(new Insets(40));
-        view.setStyle("-fx-background-color: #f4f4f4;");
+        view.setStyle("-fx-background-color: #121212;");
 
-        // 2. Create UI Components
-        Label titleLabel = new Label("Create an Account");
+        VBox card = new VBox(20);
+        card.setAlignment(Pos.CENTER);
+        card.setPadding(new Insets(40));
+        card.setMaxWidth(350);
+        card.setStyle("-fx-background-color: #1E1E1E; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.6), 15, 0, 0, 5);");
+
+        Label titleLabel = new Label("Join Mini Cloud");
         titleLabel.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+        titleLabel.setStyle("-fx-text-fill: #ffffff;");
+
+        String inputStyle = "-fx-background-color: #2D2D2D; -fx-text-fill: white; -fx-prompt-text-fill: #888888; -fx-background-radius: 5; -fx-border-color: #444444; -fx-border-radius: 5; -fx-padding: 10;";
 
         usernameField = new TextField();
         usernameField.setPromptText("Choose a Username");
-        usernameField.setMaxWidth(250);
+        usernameField.setStyle(inputStyle);
+        usernameField.setMaxWidth(280);
 
         passwordField = new PasswordField();
         passwordField.setPromptText("Create a Password");
-        passwordField.setMaxWidth(250);
+        passwordField.setStyle(inputStyle);
+        passwordField.setMaxWidth(280);
 
         confirmPasswordField = new PasswordField();
         confirmPasswordField.setPromptText("Confirm Password");
-        confirmPasswordField.setMaxWidth(250);
+        confirmPasswordField.setStyle(inputStyle);
+        confirmPasswordField.setMaxWidth(280);
 
         registerButton = new Button("Register");
-        // Using a green color to indicate a "create/new" action
-        registerButton.setStyle("-fx-background-color: #28a745; -fx-text-fill: white; -fx-font-weight: bold;");
-        registerButton.setPrefWidth(250);
+        registerButton.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5; -fx-padding: 10; -fx-cursor: hand;");
+        registerButton.setPrefWidth(280);
 
-        switchToLoginButton = new Button("Already have an account? Log in.");
-        switchToLoginButton.setStyle("-fx-background-color: transparent; -fx-text-fill: #0078D7; -fx-underline: true;");
+        switchToLoginButton = new Button("Already have an account? Log in");
+        switchToLoginButton.setStyle("-fx-background-color: transparent; -fx-text-fill: #3b82f6; -fx-cursor: hand;");
 
-        statusLabel = new Label(); // Empty label for error/success messages
+        statusLabel = new Label();
 
-        // 3. Add components to the layout
-        view.getChildren().addAll(
-            titleLabel, 
-            usernameField, 
-            passwordField, 
-            confirmPasswordField,
-            registerButton, 
-            statusLabel, 
-            switchToLoginButton
-        );
+        card.getChildren().addAll(titleLabel, usernameField, passwordField, confirmPasswordField, registerButton, statusLabel, switchToLoginButton);
+        view.getChildren().add(card);
     }
 
-    // Getters for the Controller to access these elements
     public VBox getView() { return view; }
     public TextField getUsernameField() { return usernameField; }
     public PasswordField getPasswordField() { return passwordField; }

@@ -20,47 +20,50 @@ public class LoginScreen {
     private Label statusLabel;
 
     public LoginScreen() {
-        // 1. Initialize the layout container
-        view = new VBox(15); // 15px spacing between elements
+        // Main Background
+        view = new VBox(); 
         view.setAlignment(Pos.CENTER);
-        view.setPadding(new Insets(40));
-        view.setStyle("-fx-background-color: #f4f4f4;");
+        view.setStyle("-fx-background-color: #121212;"); // Deep dark background
 
-        // 2. Create UI Components
-        Label titleLabel = new Label("Mini Cloud Login");
-        titleLabel.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+        // The Login "Card" (Floating surface)
+        VBox card = new VBox(20);
+        card.setAlignment(Pos.CENTER);
+        card.setPadding(new Insets(40));
+        card.setMaxWidth(350);
+        card.setStyle("-fx-background-color: #1E1E1E; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.6), 15, 0, 0, 5);");
+
+        Label titleLabel = new Label("Mini Cloud");
+        titleLabel.setFont(Font.font("Arial", FontWeight.BOLD, 28));
+        titleLabel.setStyle("-fx-text-fill: #ffffff;");
+
+        Label subTitle = new Label("Sign in to continue");
+        subTitle.setStyle("-fx-text-fill: #a0a0a0;");
+
+        String inputStyle = "-fx-background-color: #2D2D2D; -fx-text-fill: white; -fx-prompt-text-fill: #888888; -fx-background-radius: 5; -fx-border-color: #444444; -fx-border-radius: 5; -fx-padding: 10;";
 
         usernameField = new TextField();
-        usernameField.setPromptText("Enter Username");
-        usernameField.setMaxWidth(250);
+        usernameField.setPromptText("Username");
+        usernameField.setStyle(inputStyle);
+        usernameField.setMaxWidth(280);
 
         passwordField = new PasswordField();
-        passwordField.setPromptText("Enter Password");
-        passwordField.setMaxWidth(250);
+        passwordField.setPromptText("Password");
+        passwordField.setStyle(inputStyle);
+        passwordField.setMaxWidth(280);
 
         loginButton = new Button("Login");
-        loginButton.setStyle("-fx-background-color: #0078D7; -fx-text-fill: white; -fx-font-weight: bold;");
-        loginButton.setPrefWidth(250);
+        loginButton.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5; -fx-padding: 10; -fx-cursor: hand;");
+        loginButton.setPrefWidth(280);
 
-        switchToRegisterButton = new Button("Don't have an account? Register here.");
-        switchToRegisterButton.setStyle("-fx-background-color: transparent; -fx-text-fill: #0078D7; -fx-underline: true;");
+        switchToRegisterButton = new Button("Create an account");
+        switchToRegisterButton.setStyle("-fx-background-color: transparent; -fx-text-fill: #3b82f6; -fx-cursor: hand;");
 
-        statusLabel = new Label(); // Empty label for error/success messages
+        statusLabel = new Label(); 
 
-        // 3. Add components to the layout
-        view.getChildren().addAll(
-            titleLabel, 
-            usernameField, 
-            passwordField, 
-            loginButton, 
-            statusLabel, 
-            switchToRegisterButton
-        );
-        
-        // Note: Button click logic will be handled by our Controller later, keeping UI and Logic separate!
+        card.getChildren().addAll(titleLabel, subTitle, usernameField, passwordField, loginButton, statusLabel, switchToRegisterButton);
+        view.getChildren().add(card);
     }
 
-    // Getters so the Controller and MainApp can access these elements
     public VBox getView() { return view; }
     public Button getLoginButton() { return loginButton; }
     public Button getSwitchToRegisterButton() { return switchToRegisterButton; }

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mini Cloud - Admin Monitor</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 50px; }
+        .dashboard { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #0078D7; text-align: center; }
+        .stat-box { background: #28a745; color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px; }
+        .stat-number { font-size: 48px; font-weight: bold; margin: 10px 0; }
+        
+        /* New Table Styles */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background-color: #0078D7; color: white; padding: 12px; border: 1px solid #ddd; }
+        td { padding: 12px; border: 1px solid #ddd; text-align: center; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        
+        .delete-btn { background-color: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .delete-btn:hover { background-color: #c82333; }
+        .footer { text-align: center; margin-top: 30px; color: #777; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <h1>System Administrator Dashboard</h1>
+    
+    <div class="stat-box">
+        <h3>Total Registered Users</h3>
+        <div class="stat-number">{{USER_COUNT}}</div>
+    </div>
+
+    <h3>User Management</h3>
+    <table>
+        <tr>
+            <th>User ID</th>
+            <th>Username</th>
+            <th>Action</th>
+        </tr>
+        {{USER_TABLE_ROWS}}
+    </table>
+
+    <div class="footer">
+        Powered by Java Servlets & JDBC
+    </div>
+</div>
+
+</body>
+</html>
