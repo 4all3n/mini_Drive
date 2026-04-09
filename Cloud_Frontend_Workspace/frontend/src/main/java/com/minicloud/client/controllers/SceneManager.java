@@ -1,13 +1,19 @@
 package com.minicloud.client.controllers;
 
-
 import com.minicloud.client.network.AuthNetworkService;
 import com.minicloud.client.network.FileNetworkService;
 import com.minicloud.client.ui.DashboardScreen;
 import com.minicloud.client.ui.LoginScreen;
 import com.minicloud.client.ui.RegisterScreen;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+
+import java.io.File;
+import java.util.List;
 
 public class SceneManager {
 
@@ -90,58 +96,106 @@ public class SceneManager {
             }
         }); 
 
-        
         Scene scene = new Scene(registerScreen.getView(), 400, 500);
         primaryStage.setTitle("Mini Cloud - Register");
         primaryStage.setScene(scene);
     }
 
-    
     public void showDashboardScreen(String username) {
         DashboardScreen dashboard = new DashboardScreen(username);
         
         dashboard.getLogoutButton().setOnAction(e -> showLoginScreen());
 
-        // --- NEW: Load files immediately when the dashboard opens ---
-        java.util.List<DashboardScreen.FileRecord> existingFiles = fileNetworkService.fetchUserFiles(username);
+        // Load files immediately
+        List<DashboardScreen.FileRecord> existingFiles = fileNetworkService.fetchUserFiles(username);
         dashboard.getTable().getItems().addAll(existingFiles);
         
+        // Upload Button Logic
         dashboard.getUploadButton().setOnAction(e -> {
-            javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+            FileChooser fileChooser = new FileChooser();
             fileChooser.setTitle("Select File to Upload");
-            java.io.File selectedFile = fileChooser.showOpenDialog(primaryStage);
+            File selectedFile = fileChooser.showOpenDialog(primaryStage);
             
             if (selectedFile != null) {
-               dashboard.getUploadButton().setText("Uploading...");
+                dashboard.getUploadButton().setText("Uploading...");
                 dashboard.getUploadButton().setDisable(true);
 
-                // Now it returns a String instead of a boolean
                 String resultMessage = fileNetworkService.uploadFile(selectedFile, username);
                 boolean success = "SUCCESS".equals(resultMessage);
                 
                 if (success) {
                     dashboard.getTable().getItems().clear(); 
-                    java.util.List<DashboardScreen.FileRecord> freshFiles = fileNetworkService.fetchUserFiles(username);
-                    dashboard.getTable().getItems().addAll(freshFiles); 
+                    dashboard.getTable().getItems().addAll(fileNetworkService.fetchUserFiles(username)); 
                 }
 
-                // Show the dynamic alert message
-                javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
-                    success ? javafx.scene.control.Alert.AlertType.INFORMATION : javafx.scene.control.Alert.AlertType.ERROR
-                );
-                alert.setTitle("Upload Status");
-                alert.setHeaderText(null);
-                // If success, say so. Otherwise, show the exact error message from the server!
-                alert.setContentText(success ? "File uploaded successfully!" : resultMessage);
-                alert.showAndWait();
+                showAlert(success ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR,
+                    "Upload Status", success ? "File uploaded successfully!" : resultMessage);
 
                 dashboard.getUploadButton().setText("+ Upload File");
                 dashboard.getUploadButton().setDisable(false);
             }
         });
 
+        // Download Button Logic
+        dashboard.getDownloadButton().setOnAction(e -> {
+            DashboardScreen.FileRecord selected = dashboard.getTable().getSelectionModel().getSelectedItem();
+            if (selected == null) {
+                showAlert(Alert.AlertType.WARNING, "No File Selected", "Please click a file in the table first.");
+                return;
+            }
+
+            DirectoryChooser directoryChooser = new DirectoryChooser();
+            directoryChooser.setTitle("Select Save Location");
+            File saveDir = directoryChooser.showDialog(primaryStage);
+
+            if (saveDir != null) {
+                dashboard.getDownloadButton().setText("Downloading...");
+                dashboard.getDownloadButton().setDisable(true);
+
+                boolean success = fileNetworkService.downloadFile(selected.getId(), selected.getFileName(), saveDir);
+                
+                showAlert(success ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR,
+                        "Download Status", success ? "File saved successfully!" : "Failed to download file.");
+                
+                dashboard.getDownloadButton().setText("Download Selected");
+                dashboard.getDownloadButton().setDisable(false);
+            }
+        });
+
+        // Delete Button Logic
+        dashboard.getDeleteButton().setOnAction(e -> {
+            DashboardScreen.FileRecord selected = dashboard.getTable().getSelectionModel().getSelectedItem();
+            if (selected == null) {
+                showAlert(Alert.AlertType.WARNING, "No File Selected", "Please click a file in the table first.");
+                return;
+            }
+
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+            confirm.setTitle("Confirm Deletion");
+            confirm.setHeaderText("Delete " + selected.getFileName() + "?");
+            confirm.setContentText("This cannot be undone.");
+            
+            if (confirm.showAndWait().get() == ButtonType.OK) {
+                boolean success = fileNetworkService.deleteFile(selected.getId());
+                if (success) {
+                    dashboard.getTable().getItems().clear();
+                    dashboard.getTable().getItems().addAll(fileNetworkService.fetchUserFiles(username));
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Delete Status", "Failed to delete file from server.");
+                }
+            }
+        });
+
         Scene scene = new Scene(dashboard.getView(), 800, 600);
         primaryStage.setTitle("Mini Cloud - Dashboard");
         primaryStage.setScene(scene);
+    }
+
+    private void showAlert(Alert.AlertType type, String title, String content) {
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
     }
 }

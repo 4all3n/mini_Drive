@@ -2,6 +2,7 @@ package com.minicloud.server.backend.controllers;
 
 import com.minicloud.server.backend.models.FileMetadata;
 import com.minicloud.server.backend.repository.FileRepository;
+import com.minicloud.server.backend.services.AiCategorizationService; // IMPORT THE AI SERVICE
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,27 +24,25 @@ public class FileController {
     @Autowired
     private FileRepository fileRepository;
 
-    // Define a folder on Laptop 2 to store the physical files
+    @Autowired
+    private AiCategorizationService aiService; // INJECT THE AI SERVICE
+
     private final String UPLOAD_DIR = System.getProperty("user.dir") + "/cloud_storage/";
 
     @PostMapping("/upload")
     public ResponseEntity<String> uploadFile(
             @RequestParam("file") MultipartFile file, 
             @RequestParam("username") String username) {
-        
         try {
-            // 1. Create the storage directory if it doesn't exist
             File directory = new File(UPLOAD_DIR);
             if (!directory.exists()) {
                 directory.mkdirs();
             }
 
-            // 2. Save the physical file to the server's hard drive
             byte[] bytes = file.getBytes();
             Path path = Paths.get(UPLOAD_DIR + file.getOriginalFilename());
             Files.write(path, bytes);
 
-            // 3. Create the Metadata object
             FileMetadata metadata = new FileMetadata();
             metadata.setFileName(file.getOriginalFilename());
             metadata.setFileType(file.getContentType());
@@ -52,10 +51,13 @@ public class FileController {
             metadata.setUploadedBy(username);
             metadata.setUploadDate(LocalDateTime.now());
 
-            // 4. Save metadata to MySQL
+            // --- ASK THE AI FOR THE CATEGORY ---
+            String category = aiService.analyzeAndCategorize(file.getOriginalFilename());
+            metadata.setCategory(category);
+
             fileRepository.save(metadata);
 
-            return ResponseEntity.status(HttpStatus.OK).body("File uploaded successfully!");
+            return ResponseEntity.status(HttpStatus.OK).body("SUCCESS");
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -63,20 +65,50 @@ public class FileController {
         }
     }
 
-    // --- ADD THIS NEW METHOD ---
     @GetMapping("/list")
     public ResponseEntity<String> getUserFiles(@RequestParam("username") String username) {
-        // 1. Ask the database for all files uploaded by this specific user
         List<FileMetadata> files = fileRepository.findByUploadedBy(username);
-        
-        // 2. Build a simple custom string to send back (e.g., file1.pdf|PDF|1024;;;file2.png|PNG|2048)
         StringBuilder sb = new StringBuilder();
         for (FileMetadata f : files) {
-            sb.append(f.getFileName()).append("|")
+            sb.append(f.getId()).append("|")
+              .append(f.getFileName()).append("|")
               .append(f.getFileType()).append("|")
-              .append(f.getFileSize()).append(";;;"); // Using ;;; to separate different files
+              .append(f.getFileSize()).append("|")
+              .append(f.getCategory()).append(";;;"); // ADDED CATEGORY TO THE STRING
         }
-        
         return ResponseEntity.ok(sb.toString());
+    }
+
+    @GetMapping("/download/{id}")
+    public ResponseEntity<org.springframework.core.io.Resource> downloadFile(@PathVariable Long id) {
+        try {
+            FileMetadata metadata = fileRepository.findById(id).orElseThrow();
+            Path filePath = Paths.get(metadata.getServerFilePath());
+            org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(filePath.toUri());
+
+            if (resource.exists() || resource.isReadable()) {
+                return ResponseEntity.ok()
+                        .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, 
+                                "attachment; filename=\"" + metadata.getFileName() + "\"")
+                        .body(resource);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<String> deleteFile(@PathVariable Long id) {
+        try {
+            FileMetadata metadata = fileRepository.findById(id).orElseThrow();
+            Path filePath = Paths.get(metadata.getServerFilePath());
+            Files.deleteIfExists(filePath);
+            fileRepository.deleteById(id);
+            return ResponseEntity.ok("Deleted successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Delete failed");
+        }
     }
 }

@@ -15,15 +15,14 @@ public class FileMetadata {
     private String fileName;
 
     private String fileType;
-    private long fileSize; // In bytes
-
-    @Column(nullable = false)
-    private String serverFilePath; // Where it is saved on Laptop 2's hard drive
-
-    private String uploadedBy; // The username of who owns it
+    private long fileSize; 
+    private String serverFilePath; 
+    private String uploadedBy; 
     private LocalDateTime uploadDate;
 
-    // --- Getters and Setters ---
+    // --- NEW: The AI Category ---
+    private String category;
+
     public Long getId() { return id; }
     public String getFileName() { return fileName; }
     public void setFileName(String fileName) { this.fileName = fileName; }
@@ -37,4 +36,8 @@ public class FileMetadata {
     public void setUploadedBy(String uploadedBy) { this.uploadedBy = uploadedBy; }
     public LocalDateTime getUploadDate() { return uploadDate; }
     public void setUploadDate(LocalDateTime uploadDate) { this.uploadDate = uploadDate; }
+    
+    // Getter and Setter for Category
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
 }
