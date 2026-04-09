@@ -1,0 +1,277 @@
+MINI_Drive Frontend Project Summary
+
+1. Project Purpose
+This frontend is a JavaFX desktop client for the Mini Cloud application. It provides login, registration, and dashboard screens, communicates with the Spring Boot backend over HTTP, and allows users to upload, list, download, and delete files.
+
+2. Build and Runtime Configuration
+- Build tool: Maven
+- Java source/target level: 11
+- JavaFX dependency: javafx-controls 13
+- Networking: Java HttpClient and java.net.http
+- Main class configured in the Maven JavaFX plugin: com.minicloud.client.App
+
+Important note:
+- The source tree currently contains com.minicloud.client.MainApp, not com.minicloud.client.App, so the Maven plugin configuration appears to point at a different main class name than the one present in source.
+
+3. Module Descriptor
+File: src/main/java/module-info.java
+
+Current module declaration:
+- module com.minicloud.client
+- requires javafx.controls
+- requires java.net.http
+- exports com.minicloud.client
+- exports com.minicloud.client.ui
+- exports com.minicloud.client.controllers
+- opens com.minicloud.client.ui to javafx.base
+
+Behavior and impact:
+- The module exports the main app package, UI package, and controller package.
+- It only explicitly requires javafx.controls, while the public API exposes JavaFX types such as Stage, VBox, BorderPane, Button, and TableView.
+- This is the source of the current module-accessibility warnings reported by the compiler.
+- The code is functional in structure, but the module graph is not fully aligned with the types used in public method signatures.
+
+4. Application Entry Point
+File: src/main/java/com/minicloud/client/MainApp.java
+
+This class extends javafx.application.Application.
+- start(Stage primaryStage) creates a SceneManager instance.
+- It immediately shows the login screen.
+- It then displays the primary stage.
+- main(String[] args) calls launch(args).
+
+This is the application bootstrap path used when the JavaFX app starts.
+
+5. Navigation and Screen Management
+File: src/main/java/com/minicloud/client/controllers/SceneManager.java
+
+This class owns the main application flow and switches the Stage content between screens.
+
+State held by the class:
+- primaryStage: the JavaFX window
+- networkService: AuthNetworkService instance
+- fileNetworkService: FileNetworkService instance
+
+Methods:
+- showLoginScreen()
+  - Builds a LoginScreen instance.
+  - Wires the switch-to-register button to show the registration screen.
+  - Wires the login button to validate username and password fields.
+  - Shows validation errors if fields are empty.
+  - Calls AuthNetworkService.authenticateUser(...).
+  - On success, opens the dashboard for that username.
+  - On failure, displays a login failure or offline message.
+
+- showRegisterScreen()
+  - Builds a RegisterScreen instance.
+  - Wires the back-to-login button.
+  - Validates empty fields and password confirmation.
+  - Calls AuthNetworkService.registerUser(...).
+  - Shows success or failure feedback in the status label.
+
+- showDashboardScreen(String username)
+  - Builds a DashboardScreen for the logged-in user.
+  - Wires the logout button to return to the login screen.
+  - Fetches the current file list from the backend and populates the table.
+  - Wires the upload button to open a FileChooser and upload the selected file.
+  - Wires the download button to save the selected file to a user-chosen directory.
+  - Wires the delete button to confirm and delete the selected file.
+  - Refreshes the table after upload or delete actions.
+
+- showAlert(Alert.AlertType type, String title, String content)
+  - Helper for standard JavaFX alerts.
+
+How the app behaves:
+- SceneManager is the central navigation controller.
+- It is responsible for both UI transitions and network-triggered actions.
+- It directly coordinates the backend services with the JavaFX views.
+
+6. Authentication Network Layer
+File: src/main/java/com/minicloud/client/network/AuthNetworkService.java
+
+This service talks to the backend authentication endpoints.
+
+Base URL:
+- http://localhost:8080/api/auth
+
+Methods:
+- authenticateUser(String username, String password)
+  - Builds JSON manually as a string.
+  - Sends POST /login with Content-Type: application/json.
+  - Returns true if the backend responds with HTTP 200.
+  - Logs the payload and response for debugging.
+  - Returns false on exceptions.
+
+- registerUser(String username, String password)
+  - Builds JSON manually as a string.
+  - Sends POST /register.
+  - Returns true for HTTP 200 or 201.
+  - Returns false on exceptions.
+
+Important behavior:
+- JSON is created by string formatting rather than a JSON library.
+- The service assumes the backend is reachable on localhost:8080.
+- Logging is printed to standard output and standard error.
+
+7. File Network Layer
+File: src/main/java/com/minicloud/client/network/FileNetworkService.java
+
+This service talks to the backend file endpoints.
+
+Base URL:
+- http://localhost:8080/api/files
+
+Methods:
+- uploadFile(File file, String username)
+  - Reads the entire file into memory.
+  - Manually constructs a multipart/form-data body.
+  - Includes the username and file fields.
+  - Sends POST /upload.
+  - Returns "SUCCESS" if HTTP 200 is received.
+  - Otherwise returns the response body or a failure message.
+
+- fetchUserFiles(String username)
+  - Sends GET /list?username=...
+  - Parses the backend response string split by ;;; and then by |
+  - Builds DashboardScreen.FileRecord objects from the parsed fields.
+  - Converts the raw file size into a human-readable string.
+  - Uses the AI category field if present.
+
+- downloadFile(Long fileId, String fileName, File destinationFolder)
+  - Sends GET /download/{id}
+  - Streams the response directly to a file in the selected destination folder.
+  - Returns true if HTTP 200 is received.
+
+- deleteFile(Long fileId)
+  - Sends DELETE /delete/{id}
+  - Returns true if HTTP 200 is received.
+
+Helper methods:
+- formatFileSize(long bytes)
+  - Converts byte counts into B, KB, MB, etc.
+
+- buildMultipartBody(...)
+  - Manually builds the multipart request body bytes for upload.
+
+Important behavior:
+- Uploads are sent without using a multipart library.
+- The frontend expects the backend list endpoint to keep its custom delimiter format.
+- File download uses the Java HttpClient file body handler.
+
+8. Login Screen UI
+File: src/main/java/com/minicloud/client/ui/LoginScreen.java
+
+This class builds the login screen view.
+
+UI structure:
+- Root VBox centered on the page
+- Dark background theme
+- Card-style inner VBox with shadow and rounded corners
+- Title label: Mini Cloud
+- Subtitle: Sign in to continue
+- Username TextField
+- Password PasswordField
+- Login button
+- Status label for messages
+- Create account button
+
+Public accessors:
+- getView()
+- getLoginButton()
+- getSwitchToRegisterButton()
+- getUsernameField()
+- getPasswordField()
+- getStatusLabel()
+
+Important behavior:
+- The UI stores state in fields so SceneManager can wire event handlers.
+- The screen is purely presentational; the backend logic is attached externally.
+
+9. Registration Screen UI
+File: src/main/java/com/minicloud/client/ui/RegisterScreen.java
+
+This class builds the registration screen view.
+
+UI structure:
+- Root VBox centered on the page
+- Same dark visual theme as login
+- Title label: Join Mini Cloud
+- Username TextField
+- Password PasswordField
+- Confirm Password PasswordField
+- Register button
+- Status label
+- Back-to-login button
+
+Public accessors:
+- getView()
+- getUsernameField()
+- getPasswordField()
+- getConfirmPasswordField()
+- getRegisterButton()
+- getSwitchToLoginButton()
+- getStatusLabel()
+
+Important behavior:
+- The screen does not validate itself beyond being a container for input widgets.
+- SceneManager handles field checks and network submission.
+
+10. Dashboard Screen UI
+File: src/main/java/com/minicloud/client/ui/DashboardScreen.java
+
+This is the main post-login workspace for file operations.
+
+UI structure:
+- Root BorderPane
+- Top navigation bar with brand label, welcome text, and logout button
+- Main content area containing:
+  - Section title: My Files
+  - Upload button
+  - Download Selected button
+  - Delete Selected button
+  - TableView of files
+
+Inner data model:
+- DashboardScreen.FileRecord
+  - id
+  - fileName
+  - fileType
+  - fileSize
+  - category
+
+Table columns:
+- File Name
+- Type
+- Size
+- AI Category
+
+Public accessors:
+- getView()
+- getLogoutButton()
+- getUploadButton()
+- getDownloadButton()
+- getDeleteButton()
+- getTable()
+
+Important behavior:
+- The table is populated from backend records returned by FileNetworkService.
+- The AI category is shown directly in the table.
+- The screen is styled with a dark theme and accent colors for action buttons.
+
+11. Frontend Flow Summary
+The app works like this:
+- MainApp starts the JavaFX application.
+- SceneManager displays the login screen.
+- The user either logs in or opens the registration screen.
+- AuthNetworkService sends credentials to the backend.
+- On success, SceneManager opens the dashboard.
+- DashboardScreen shows the user’s files.
+- FileNetworkService uploads, downloads, refreshes, and deletes files through the backend API.
+- The UI updates after file operations to keep the table in sync.
+
+12. Notable Observations
+- The frontend relies on localhost backend endpoints and will not work if the backend is offline.
+- JSON and multipart bodies are assembled manually instead of using higher-level libraries.
+- The module descriptor currently does not fully match the JavaFX types used in exported public APIs, which is why compile warnings are appearing.
+- The Maven plugin points to com.minicloud.client.App, while the source currently contains MainApp, so the launch configuration should be checked.
+- The app uses a custom string protocol for file lists rather than JSON, which keeps the frontend parsing logic tightly coupled to the backend format.

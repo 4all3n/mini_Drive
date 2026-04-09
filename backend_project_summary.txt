@@ -1,0 +1,225 @@
+MINI_Drive Backend Project Summary
+
+1. Project Purpose
+This backend is a Spring Boot service that supports a small cloud-drive application. It handles user registration and login, file upload, file listing, file download, file deletion, and an admin-style servlet page for viewing and deleting registered users. It also talks to a separate Python AI service to assign a category to uploaded files.
+
+2. Build and Runtime Configuration
+- Build tool: Maven
+- Spring Boot version: 4.0.3
+- Java version: 17
+- Main server port: 8080
+- Database: MySQL database named cloud_db on localhost
+- File upload limits: 15 MB maximum file size and 15 MB maximum request size
+- JPA settings: ddl-auto=update and show_sql=true
+- Hibernate dialect: MySQLDialect
+
+The application properties configure a local MySQL connection using the root account and a hardcoded password. The backend automatically updates schema tables on startup, so entities are mapped directly to database tables.
+
+3. Application Entry Point
+File: src/main/java/com/minicloud/server/backend/BackendApplication.java
+This is the Spring Boot bootstrap class. It starts the application through SpringApplication.run(...). It also enables servlet component scanning for the com.minicloud.server package so that servlet-based endpoints such as /admin can be discovered alongside Spring MVC controllers.
+
+4. Authentication API
+File: src/main/java/com/minicloud/server/backend/controllers/AuthController.java
+Base path: /api/auth
+
+Endpoints:
+- POST /api/auth/register
+  - Accepts a User object in the request body.
+  - Checks whether the username already exists by calling UserRepository.findByUsername(...).
+  - If the username is taken, it returns HTTP 409 Conflict with the message "Username already taken".
+  - If the username is free, it saves the user and returns HTTP 201 Created with "User registered successfully".
+
+- POST /api/auth/login
+  - Accepts a User object in the request body.
+  - Looks up the stored user by username.
+  - Compares the plain-text password from the request with the stored plain-text password.
+  - On success, returns HTTP 200 OK with "Login successful".
+  - On failure, returns HTTP 401 Unauthorized with "Invalid credentials".
+
+Important behavior:
+- There is no password hashing or token/session issuance.
+- The login API is purely credential checking and returns only a success/failure message.
+
+5. File Management API
+File: src/main/java/com/minicloud/server/backend/controllers/FileController.java
+Base path: /api/files
+
+This controller is the core file-storage API. It stores the uploaded file on disk, stores metadata in the database, and returns a custom string format that the frontend parses.
+
+Private storage location:
+- The upload directory is built from the current working directory plus /cloud_storage/
+- Files are stored on the server file system rather than inside the database
+
+Endpoints:
+- POST /api/files/upload
+  - Request parameters:
+    - file: MultipartFile
+    - username: the uploader name
+  - Creates the upload directory if it does not already exist.
+  - Writes the uploaded bytes to disk using the original filename.
+  - Builds a FileMetadata record with:
+    - fileName
+    - fileType
+    - fileSize
+    - serverFilePath
+    - uploadedBy
+    - uploadDate
+  - Calls AiCategorizationService.analyzeAndCategorize(fileName) to get a category string.
+  - Saves the metadata through FileRepository.
+  - Returns HTTP 200 OK with the body "SUCCESS" if the upload completes.
+  - Returns HTTP 500 Internal Server Error with "Failed to upload file." if writing fails.
+
+- GET /api/files/list
+  - Request parameter:
+    - username
+  - Loads all files uploaded by that username from the database.
+  - Returns a single string where each file record is encoded as:
+    id|fileName|fileType|fileSize|category;;;
+  - The frontend is responsible for splitting this custom format.
+
+- GET /api/files/download/{id}
+  - Loads file metadata by database id.
+  - Resolves the stored file path and returns the file as a downloadable Spring Resource.
+  - Sets the Content-Disposition header so the browser saves it using the original filename.
+  - Returns 404 if the file resource is missing or unreadable.
+  - Returns 500 for unexpected errors.
+
+- DELETE /api/files/delete/{id}
+  - Loads the metadata by id.
+  - Deletes the physical file from disk.
+  - Deletes the database record.
+  - Returns "Deleted successfully" on success.
+  - Returns "Delete failed" with HTTP 500 if an exception occurs.
+
+Important behavior:
+- The upload flow does not rename files or guard against duplicate filenames.
+- Metadata and disk storage are both used, so deletion must remove both the file and the database row.
+- The list endpoint is a custom string protocol instead of JSON.
+
+6. AI Categorization Service
+File: src/main/java/com/minicloud/server/backend/services/AiCategorizationService.java
+
+This service calls an external Python service to classify uploaded files.
+
+Behavior:
+- Builds an HTTP POST request to http://127.0.0.1:8000/predict
+- Sends JSON in the form {"filename": "..."}
+- Uses Java HttpClient with a 3-second connect timeout
+- If the response status is 200, it extracts the category from the response body and returns it
+- If anything fails, it logs a warning and returns "Uncategorized"
+
+Important behavior:
+- The service assumes the Python API returns a very simple JSON body containing a category field.
+- The parsing logic uses string splitting rather than a JSON parser, so it is sensitive to response formatting.
+- If the AI service is offline, file upload still succeeds, but the category defaults to Uncategorized.
+
+7. Data Model
+File: src/main/java/com/minicloud/server/backend/models/User.java
+This is a JPA entity mapped to the users table.
+- id: generated primary key
+- username: unique and non-null
+- password: non-null
+
+File: src/main/java/com/minicloud/server/backend/models/FileMetadata.java
+This is a JPA entity mapped to the files table.
+- id: generated primary key
+- fileName: required
+- fileType: MIME type or similar descriptor
+- fileSize: numeric size in bytes
+- serverFilePath: full path to the stored file
+- uploadedBy: username of the uploader
+- uploadDate: timestamp of upload
+- category: AI-generated classification label
+
+Important behavior:
+- The entities are simple POJOs with getters and setters.
+- There is no relationship mapping between User and FileMetadata; the connection is stored by username text.
+
+8. Repository Layer
+File: src/main/java/com/minicloud/server/backend/repository/UserRepository.java
+- Extends JpaRepository<User, Long>
+- Adds findByUsername(String username)
+- This supports duplicate-user checks and login lookups
+
+File: src/main/java/com/minicloud/server/backend/repository/FileRepository.java
+- Extends JpaRepository<FileMetadata, Long>
+- Adds findByUploadedBy(String username)
+- This supports the user-specific file list endpoint
+
+9. Servlet-Based Admin Features
+These endpoints are outside the Spring MVC controllers and use classic Jakarta Servlets.
+
+File: src/main/java/com/minicloud/server/servlet/AdminServlet.java
+Mapping: /admin
+
+Behavior:
+- Queries the users table directly using JDBC
+- Counts all users
+- Builds an HTML table row for each user
+- Injects the count and rows into src/main/resources/admin.html
+- Renders the resulting admin dashboard page
+
+The servlet uses a static HTML template with placeholders:
+- {{USER_COUNT}}
+- {{USER_TABLE_ROWS}}
+
+File: src/main/java/com/minicloud/server/servlet/DeleteUserServlet.java
+Mapping: /admin/delete
+
+Behavior:
+- Reads the id parameter from a POST request
+- Uses JDBC PreparedStatement to delete the user row with that id
+- Redirects back to /admin after deletion
+
+Important behavior:
+- These servlets talk directly to MySQL instead of using the JPA repositories.
+- The admin view is a separate path from the JSON/API-driven file and auth flows.
+
+10. Error Handling
+File: src/main/java/com/minicloud/server/backend/controllers/FileUploadExceptionHandler.java
+
+This is a global controller advice for upload-size failures.
+- It catches MaxUploadSizeExceededException
+- Returns HTTP 413 Payload Too Large
+- Uses the message: "File is too large! Maximum upload size is 15MB."
+
+This makes oversized upload failures cleaner than a generic server error.
+
+11. Admin HTML Template
+File: src/main/resources/admin.html
+
+This is the HTML page rendered by AdminServlet.
+It includes:
+- A title: System Administrator Dashboard
+- A statistic box that shows the total number of registered users
+- A user table with columns for User ID, Username, and Action
+- A Delete button per row
+- Simple embedded CSS for layout and styling
+
+The servlet replaces the placeholders in this file at runtime.
+
+12. Test Code
+File: src/test/java/com/minicloud/server/backend/BackendApplicationTests.java
+
+This is a minimal Spring Boot context-load test.
+- It starts the application context with @SpringBootTest
+- The test method contextLoads() is empty
+- Its purpose is to verify that the backend context can start without configuration failures
+
+13. Runtime Flow Summary
+The backend works like this:
+- A user registers through /api/auth/register, which saves a User entity.
+- A user logs in through /api/auth/login, which checks the stored password.
+- The frontend uploads a file to /api/files/upload using multipart form data.
+- The backend writes the file to disk, stores metadata in MySQL, and asks the Python AI service for a category.
+- The frontend requests /api/files/list to populate the table.
+- Download and delete actions use the file id to retrieve or remove the file.
+- The admin servlet provides a separate HTML view for user monitoring and deletion.
+
+14. Notable Observations
+- Credentials for MySQL are hardcoded in configuration and servlet classes.
+- Passwords are stored and compared in plain text.
+- The file list API uses a custom string protocol instead of JSON.
+- The AI categorization parser is brittle because it depends on string splitting.
+- The backend mixes Spring MVC, JPA, JDBC servlets, and a local Python service, so it has multiple integration points.
