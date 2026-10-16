@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  database:
+    image: mariadb:10.11
+    container_name: minidrive-mariadb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: cloud_db
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: '7317355'
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ai-service:
+    build:
+      context: ./model
+      dockerfile: Dockerfile
+    container_name: minidrive-ai-service
+    restart: always
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/docs\")'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./Cloud_Backend_Workspace/backend
+      dockerfile: Dockerfile
+    container_name: minidrive-backend
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://database:3306/cloud_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: app_user
+      SPRING_DATASOURCE_PASSWORD: '7317355'
+      AI_SERVICE_URL: http://ai-service:8000/predict
+      STORAGE_ROOT_PATH: /app/cloud_storage
+    volumes:
+      - backend_storage:/app/cloud_storage
+    depends_on:
+      database:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+
+volumes:
+  mariadb_data:
+  backend_storage:

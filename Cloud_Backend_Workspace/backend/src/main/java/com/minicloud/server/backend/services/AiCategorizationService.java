@@ -1,30 +1,49 @@
 package com.minicloud.server.backend.services;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
+/**
+ * Service that acts as a bridge between the Spring Boot backend and the FastAPI AI microservice
+ * to automatically analyze and categorize uploaded files.
+ */
 @Service
 public class AiCategorizationService {
 
     private final HttpClient httpClient;
-    private final String PYTHON_AI_URL = "http://127.0.0.1:8000/predict";
+    private final String aiServiceUrl;
 
-    public AiCategorizationService() {
+    /**
+     * Constructs the AiCategorizationService with constructor-injected AI service endpoint URL.
+     *
+     * @param aiServiceUrl the endpoint URL of the FastAPI AI categorization microservice
+     */
+    public AiCategorizationService(@Value("${ai.service.url}") String aiServiceUrl) {
+        this.aiServiceUrl = aiServiceUrl;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(3))
                 .build();
     }
 
+    /**
+     * Sends the file name to the AI microservice for classification and returns the category.
+     * Falls back to "Uncategorized" if the service is unreachable or an error occurs.
+     *
+     * @param fileName the name of the file to categorize
+     * @return predicted category or "Uncategorized" on failure
+     */
     public String analyzeAndCategorize(String fileName) {
         try {
             String jsonBody = "{\"filename\": \"" + fileName + "\"}";
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(PYTHON_AI_URL))
+                    .uri(URI.create(aiServiceUrl))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                     .build();
@@ -48,7 +67,7 @@ public class AiCategorizationService {
         } catch (Exception e) {
             System.err.println("WARNING: Python AI Server is offline. Falling back to default.");
         }
-        
-        return "Uncategorized"; 
+
+        return "Uncategorized";
     }
 }
