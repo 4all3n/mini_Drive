@@ -15,7 +15,7 @@ import java.util.List;
 
 public class FileNetworkService {
 
-    private static final String BASE_URL = "http://localhost:8080/api/files";
+    private static final String BASE_URL = ServerConfig.getBaseUrl() + "/api/files";
     private final HttpClient httpClient;
 
     public FileNetworkService() {
@@ -25,13 +25,24 @@ public class FileNetworkService {
                 .build();
     }
 
+    /**
+     * Helper: Attach JWT Bearer token to a request builder if available.
+     */
+    private HttpRequest.Builder withAuth(HttpRequest.Builder builder) {
+        String token = AuthNetworkService.getToken();
+        if (token != null) {
+            builder.header("Authorization", "Bearer " + token);
+        }
+        return builder;
+    }
+
     public String uploadFile(File file, String username) {
         try {
             String boundary = "---MiniCloudBoundary" + System.currentTimeMillis();
             byte[] fileBytes = Files.readAllBytes(file.toPath());
             byte[] body = buildMultipartBody(file.getName(), fileBytes, username, boundary);
 
-            HttpRequest request = HttpRequest.newBuilder()
+            HttpRequest request = withAuth(HttpRequest.newBuilder())
                     .uri(URI.create(BASE_URL + "/upload"))
                     .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                     .POST(HttpRequest.BodyPublishers.ofByteArray(body))
@@ -53,7 +64,7 @@ public class FileNetworkService {
     public List<com.minicloud.client.ui.DashboardScreen.FileRecord> fetchUserFiles(String username) {
         List<com.minicloud.client.ui.DashboardScreen.FileRecord> fileList = new ArrayList<>();
         try {
-            HttpRequest request = HttpRequest.newBuilder()
+            HttpRequest request = withAuth(HttpRequest.newBuilder())
                     .uri(URI.create(BASE_URL + "/list?username=" + username))
                     .GET()
                     .build();
@@ -85,7 +96,7 @@ public class FileNetworkService {
 
     public boolean downloadFile(Long fileId, String fileName, File destinationFolder) {
         try {
-            HttpRequest request = HttpRequest.newBuilder()
+            HttpRequest request = withAuth(HttpRequest.newBuilder())
                     .uri(URI.create(BASE_URL + "/download/" + fileId))
                     .GET()
                     .build();
@@ -102,7 +113,7 @@ public class FileNetworkService {
 
     public boolean deleteFile(Long fileId) {
         try {
-            HttpRequest request = HttpRequest.newBuilder()
+            HttpRequest request = withAuth(HttpRequest.newBuilder())
                     .uri(URI.create(BASE_URL + "/delete/" + fileId))
                     .DELETE()
                     .build();

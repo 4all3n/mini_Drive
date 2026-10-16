@@ -32,9 +32,18 @@ public class AiCategorizationService {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                // Extracts the category from {"category":"Some Category"}
+                // Proper JSON key extraction — finds "category":"<value>" in the response
+                // Handles cases where the category value might contain special characters
                 String body = response.body();
-                return body.split(":")[1].replaceAll("[\"}]", "").trim();
+                int keyIndex = body.indexOf("\"category\"");
+                if (keyIndex != -1) {
+                    int colonIndex = body.indexOf(":", keyIndex);
+                    int valueStart = body.indexOf("\"", colonIndex + 1) + 1;
+                    int valueEnd = body.indexOf("\"", valueStart);
+                    if (valueStart > 0 && valueEnd > valueStart) {
+                        return body.substring(valueStart, valueEnd).trim();
+                    }
+                }
             }
         } catch (Exception e) {
             System.err.println("WARNING: Python AI Server is offline. Falling back to default.");

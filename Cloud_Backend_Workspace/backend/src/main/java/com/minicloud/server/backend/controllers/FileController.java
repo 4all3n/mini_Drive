@@ -6,6 +6,9 @@ import com.minicloud.server.backend.services.AiCategorizationService; // IMPORT 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,6 +32,14 @@ public class FileController {
 
     private final String UPLOAD_DIR = System.getProperty("user.dir") + "/cloud_storage/";
 
+    /**
+     * Get the authenticated username from the JWT token in the SecurityContext.
+     */
+    private String getAuthenticatedUsername() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return (auth != null) ? auth.getName() : null;
+    }
+
     @PostMapping("/upload")
     public ResponseEntity<String> uploadFile(
             @RequestParam("file") MultipartFile file, 
@@ -39,20 +50,30 @@ public class FileController {
                 directory.mkdirs();
             }
 
+            // --- PATH TRAVERSAL PREVENTION ---
+            String cleanFileName = StringUtils.cleanPath(file.getOriginalFilename());
+            if (cleanFileName.contains("..")) {
+                return ResponseEntity.badRequest().body("Invalid filename: directory traversal sequences not allowed.");
+            }
+
+            Path targetPath = Paths.get(UPLOAD_DIR).resolve(cleanFileName).normalize().toAbsolutePath();
+            if (!targetPath.startsWith(Paths.get(UPLOAD_DIR).toAbsolutePath())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Path traversal attempt blocked.");
+            }
+
             byte[] bytes = file.getBytes();
-            Path path = Paths.get(UPLOAD_DIR + file.getOriginalFilename());
-            Files.write(path, bytes);
+            Files.write(targetPath, bytes);
 
             FileMetadata metadata = new FileMetadata();
-            metadata.setFileName(file.getOriginalFilename());
+            metadata.setFileName(cleanFileName);
             metadata.setFileType(file.getContentType());
             metadata.setFileSize(file.getSize());
-            metadata.setServerFilePath(path.toString());
+            metadata.setServerFilePath(targetPath.toString());
             metadata.setUploadedBy(username);
             metadata.setUploadDate(LocalDateTime.now());
 
             // --- ASK THE AI FOR THE CATEGORY ---
-            String category = aiService.analyzeAndCategorize(file.getOriginalFilename());
+            String category = aiService.analyzeAndCategorize(cleanFileName);
             metadata.setCategory(category);
 
             fileRepository.save(metadata);
@@ -80,9 +101,16 @@ public class FileController {
     }
 
     @GetMapping("/download/{id}")
-    public ResponseEntity<org.springframework.core.io.Resource> downloadFile(@PathVariable Long id) {
+    public ResponseEntity<?> downloadFile(@PathVariable Long id) {
         try {
             FileMetadata metadata = fileRepository.findById(id).orElseThrow();
+
+            // --- IDOR PREVENTION: Verify the authenticated user owns this file ---
+            String authenticatedUser = getAuthenticatedUsername();
+            if (authenticatedUser != null && !metadata.getUploadedBy().equals(authenticatedUser)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not own this file.");
+            }
+
             Path filePath = Paths.get(metadata.getServerFilePath());
             org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(filePath.toUri());
 
@@ -103,6 +131,13 @@ public class FileController {
     public ResponseEntity<String> deleteFile(@PathVariable Long id) {
         try {
             FileMetadata metadata = fileRepository.findById(id).orElseThrow();
+
+            // --- IDOR PREVENTION: Verify the authenticated user owns this file ---
+            String authenticatedUser = getAuthenticatedUsername();
+            if (authenticatedUser != null && !metadata.getUploadedBy().equals(authenticatedUser)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not own this file.");
+            }
+
             Path filePath = Paths.get(metadata.getServerFilePath());
             Files.deleteIfExists(filePath);
             fileRepository.deleteById(id);

@@ -104,7 +104,10 @@ public class SceneManager {
     public void showDashboardScreen(String username) {
         DashboardScreen dashboard = new DashboardScreen(username);
         
-        dashboard.getLogoutButton().setOnAction(e -> showLoginScreen());
+        dashboard.getLogoutButton().setOnAction(e -> {
+            AuthNetworkService.clearToken(); // Clear JWT token on logout
+            showLoginScreen();
+        });
 
         // Load files immediately
         List<DashboardScreen.FileRecord> existingFiles = fileNetworkService.fetchUserFiles(username);

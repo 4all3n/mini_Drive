@@ -34,7 +34,7 @@
                     <execution>
                         <id>default-cli</id>
                         <configuration>
-                            <mainClass>com.minicloud.client.App</mainClass>
+                            <mainClass>com.minicloud.client.MainApp</mainClass>
                         </configuration>
                     </execution>
                     <execution>
@@ -43,7 +43,7 @@
                             <options>
                                 <option>-agentlib:jdwp=transport=dt_socket,server=n,address=${jpda.address}</option>
                             </options>
-                            <mainClass>com.minicloud.client.App</mainClass>
+                            <mainClass>com.minicloud.client.MainApp</mainClass>
                         </configuration>
                     </execution>
                 </executions>

@@ -17,7 +17,7 @@ import java.sql.PreparedStatement;
 public class DeleteUserServlet extends HttpServlet {
 
     private static final String DB_URL = "jdbc:mysql://localhost:3306/cloud_db";
-    private static final String DB_USER = "root";
+    private static final String DB_USER = "app_user";
     private static final String DB_PASS = "7317355"; 
 
     @Override
