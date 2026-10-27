@@ -8,6 +8,7 @@ import java.util.Optional;
 
 /**
  * Modal dialog for creating a new virtual folder.
+ * Styled with Everforest dark theme.
  */
 public class NewFolderDialog {
 
@@ -15,6 +16,12 @@ public class NewFolderDialog {
         Dialog<String> dialog = new Dialog<>();
         dialog.setTitle("New Folder");
         dialog.setHeaderText("Create a new folder in " + (currentFolderName != null ? currentFolderName : "My Drive"));
+
+        try {
+            dialog.getDialogPane().getStylesheets().add(
+                    NewFolderDialog.class.getResource("/css/everforest.css").toExternalForm()
+            );
+        } catch (Exception ignored) {}
 
         ButtonType createButtonType = new ButtonType("Create", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(createButtonType, ButtonType.CANCEL);

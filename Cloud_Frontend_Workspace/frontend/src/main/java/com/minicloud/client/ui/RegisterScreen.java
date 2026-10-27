@@ -10,58 +10,67 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
+/**
+ * Modern registration screen styled with Everforest dark theme.
+ */
 public class RegisterScreen {
 
-    private VBox view;
-    private TextField usernameField;
-    private PasswordField passwordField;
-    private PasswordField confirmPasswordField;
-    private Button registerButton;
-    private Button switchToLoginButton;
-    private Label statusLabel;
+    private final VBox view;
+    private final TextField usernameField;
+    private final PasswordField passwordField;
+    private final PasswordField confirmPasswordField;
+    private final Button registerButton;
+    private final Button switchToLoginButton;
+    private final Label statusLabel;
 
     public RegisterScreen() {
-        view = new VBox(); 
+        view = new VBox();
         view.setAlignment(Pos.CENTER);
-        view.setStyle("-fx-background-color: #121212;");
+        view.setStyle("-fx-background-color: #2b3339;");
 
-        VBox card = new VBox(20);
+        VBox card = new VBox(14);
         card.setAlignment(Pos.CENTER);
-        card.setPadding(new Insets(40));
-        card.setMaxWidth(350);
-        card.setStyle("-fx-background-color: #1E1E1E; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.6), 15, 0, 0, 5);");
+        card.setPadding(new Insets(35, 30, 35, 30));
+        card.setMaxWidth(360);
+        card.setStyle("-fx-background-color: #323c41; -fx-background-radius: 8; -fx-border-color: #445055; -fx-border-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 16, 0.1, 0, 4);");
 
-        Label titleLabel = new Label("Join Mini Cloud");
-        titleLabel.setFont(Font.font("Arial", FontWeight.BOLD, 24));
-        titleLabel.setStyle("-fx-text-fill: #ffffff;");
+        javafx.scene.Node logo = IconFactory.cloudIcon(40);
 
-        String inputStyle = "-fx-background-color: #2D2D2D; -fx-text-fill: white; -fx-prompt-text-fill: #888888; -fx-background-radius: 5; -fx-border-color: #444444; -fx-border-radius: 5; -fx-padding: 10;";
+        Label titleLabel = new Label("Create Account");
+        titleLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
+        titleLabel.setStyle("-fx-text-fill: #a7c080;");
+
+        Label subTitle = new Label("Get started with your Mini Cloud Drive");
+        subTitle.setStyle("-fx-text-fill: #859289; -fx-font-size: 12px;");
+
+        String inputStyle = "-fx-background-color: #2b3339; -fx-text-fill: #d3c6aa; -fx-prompt-text-fill: #7a8478; -fx-background-radius: 5; -fx-border-color: #445055; -fx-border-radius: 5; -fx-padding: 9 12;";
 
         usernameField = new TextField();
         usernameField.setPromptText("Choose a Username");
         usernameField.setStyle(inputStyle);
-        usernameField.setMaxWidth(280);
+        usernameField.setMaxWidth(300);
 
         passwordField = new PasswordField();
         passwordField.setPromptText("Create a Password");
         passwordField.setStyle(inputStyle);
-        passwordField.setMaxWidth(280);
+        passwordField.setMaxWidth(300);
 
         confirmPasswordField = new PasswordField();
         confirmPasswordField.setPromptText("Confirm Password");
         confirmPasswordField.setStyle(inputStyle);
-        confirmPasswordField.setMaxWidth(280);
+        confirmPasswordField.setMaxWidth(300);
 
         registerButton = new Button("Register");
-        registerButton.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5; -fx-padding: 10; -fx-cursor: hand;");
-        registerButton.setPrefWidth(280);
+        registerButton.setStyle("-fx-background-color: #a7c080; -fx-text-fill: #2b3339; -fx-font-weight: bold; -fx-background-radius: 5; -fx-padding: 9 14; -fx-cursor: hand;");
+        registerButton.setPrefWidth(300);
 
-        switchToLoginButton = new Button("Already have an account? Log in");
-        switchToLoginButton.setStyle("-fx-background-color: transparent; -fx-text-fill: #3b82f6; -fx-cursor: hand;");
+        switchToLoginButton = new Button("Already have an account? Sign In");
+        switchToLoginButton.setStyle("-fx-background-color: transparent; -fx-text-fill: #7daea3; -fx-cursor: hand; -fx-font-size: 12px;");
 
         statusLabel = new Label();
+        statusLabel.setStyle("-fx-font-size: 12px;");
 
-        card.getChildren().addAll(titleLabel, usernameField, passwordField, confirmPasswordField, registerButton, statusLabel, switchToLoginButton);
+        card.getChildren().addAll(logo, titleLabel, subTitle, usernameField, passwordField, confirmPasswordField, registerButton, statusLabel, switchToLoginButton);
         view.getChildren().add(card);
     }
 

@@ -1,0 +1,443 @@
+/* ============================================================
+   Everforest Dark Theme for Mini Cloud Drive (JavaFX)
+   Palette: https://github.com/sainnhe/everforest
+   ============================================================ */
+
+/* ------------------------------------------------------------------
+   Core Palette (CSS looked-up colors)
+   ------------------------------------------------------------------ */
+.root {
+    -ef-bg0:       #2b3339;
+    -ef-bg1:       #323c41;
+    -ef-bg2:       #3a454a;
+    -ef-bg3:       #445055;
+    -ef-fg:        #d3c6aa;
+    -ef-grey0:     #7a8478;
+    -ef-grey1:     #859289;
+    -ef-grey2:     #9da9a0;
+    -ef-red:       #e67e80;
+    -ef-orange:    #e69875;
+    -ef-yellow:    #dbbc7f;
+    -ef-green:     #a7c080;
+    -ef-aqua:      #83c092;
+    -ef-blue:      #7daea3;
+    -ef-purple:    #d699b6;
+
+    -fx-base:                     -ef-bg0;
+    -fx-background:               -ef-bg0;
+    -fx-control-inner-background: -ef-bg0;
+    -fx-text-background-color:    -ef-fg;
+    -fx-accent:                   -ef-blue;
+    -fx-focus-color:              -ef-blue;
+    -fx-faint-focus-color:        transparent;
+    -fx-font-family:              "System";
+    -fx-font-size:                13px;
+}
+
+/* ------------------------------------------------------------------
+   Label / Text
+   ------------------------------------------------------------------ */
+.label {
+    -fx-text-fill: -ef-fg;
+}
+
+/* ------------------------------------------------------------------
+   Button (default)
+   ------------------------------------------------------------------ */
+.button {
+    -fx-background-color: -ef-bg2;
+    -fx-text-fill:        -ef-fg;
+    -fx-font-weight:      bold;
+    -fx-background-radius: 5;
+    -fx-border-radius:    5;
+    -fx-padding:          6 14;
+    -fx-cursor:           hand;
+}
+.button:hover {
+    -fx-background-color: -ef-bg3;
+}
+.button:pressed {
+    -fx-background-color: -ef-blue;
+    -fx-text-fill:        -ef-bg0;
+}
+.button:focused {
+    -fx-border-color: -ef-blue;
+    -fx-border-width: 1;
+}
+
+/* Styled button variants */
+.btn-primary {
+    -fx-background-color: -ef-blue;
+    -fx-text-fill:        -ef-bg0;
+}
+.btn-primary:hover {
+    -fx-background-color: derive(-ef-blue, 15%);
+}
+
+.btn-success {
+    -fx-background-color: -ef-green;
+    -fx-text-fill:        -ef-bg0;
+}
+.btn-success:hover {
+    -fx-background-color: derive(-ef-green, 15%);
+}
+
+.btn-danger {
+    -fx-background-color: transparent;
+    -fx-border-color:     -ef-red;
+    -fx-text-fill:        -ef-red;
+}
+.btn-danger:hover {
+    -fx-background-color: -ef-red;
+    -fx-text-fill:        -ef-bg0;
+}
+
+/* ------------------------------------------------------------------
+   TextField / PasswordField
+   ------------------------------------------------------------------ */
+.text-field, .password-field {
+    -fx-background-color: -ef-bg1;
+    -fx-text-fill:        -ef-fg;
+    -fx-prompt-text-fill: -ef-grey0;
+    -fx-border-color:     -ef-bg3;
+    -fx-border-radius:    5;
+    -fx-background-radius: 5;
+    -fx-padding:          7 10;
+}
+.text-field:focused, .password-field:focused {
+    -fx-border-color: -ef-blue;
+}
+
+/* ------------------------------------------------------------------
+   ComboBox
+   ------------------------------------------------------------------ */
+.combo-box {
+    -fx-background-color: -ef-bg1;
+    -fx-border-color:     -ef-bg3;
+    -fx-border-radius:    5;
+    -fx-background-radius: 5;
+}
+.combo-box .list-cell {
+    -fx-text-fill:        -ef-fg;
+    -fx-background-color: transparent;
+}
+.combo-box-popup .list-view {
+    -fx-background-color: -ef-bg1;
+}
+.combo-box-popup .list-cell {
+    -fx-text-fill:        -ef-fg;
+    -fx-background-color: -ef-bg1;
+}
+.combo-box-popup .list-cell:hover {
+    -fx-background-color: -ef-bg2;
+}
+.combo-box-popup .list-cell:selected {
+    -fx-background-color: -ef-blue;
+    -fx-text-fill:        -ef-bg0;
+}
+
+/* ------------------------------------------------------------------
+   TableView (Windows Explorer details view style)
+   ------------------------------------------------------------------ */
+.table-view {
+    -fx-background-color:        -ef-bg0;
+    -fx-border-color:            -ef-bg2;
+    -fx-border-radius:           5;
+    -fx-table-cell-border-color: transparent;
+    -fx-table-header-border-color: transparent;
+}
+.table-view .filler {
+    -fx-background-color: -ef-bg1;
+}
+.table-view .column-header-background {
+    -fx-background-color: -ef-bg1;
+    -fx-padding: 0;
+}
+.table-view .column-header {
+    -fx-background-color: -ef-bg1;
+    -fx-border-color:     transparent transparent -ef-bg3 transparent;
+    -fx-border-width:     0 0 1 0;
+    -fx-size:             32px;
+    -fx-pref-height:      32px;
+}
+.table-view .column-header .label {
+    -fx-text-fill:   -ef-grey2;
+    -fx-font-weight: bold;
+    -fx-font-size:   12px;
+    -fx-alignment:   CENTER_LEFT;
+}
+
+/* 34px row height ensures all text and 16px icons fit with zero clipping */
+.table-row-cell {
+    -fx-cell-size:        34px;
+    -fx-background-color: transparent;
+    -fx-border-color:     transparent transparent -ef-bg1 transparent;
+    -fx-border-width:     0 0 1 0;
+}
+.table-row-cell:odd {
+    -fx-background-color: #2e383e;
+}
+.table-row-cell:hover {
+    -fx-background-color: -ef-bg2;
+}
+.table-row-cell:selected {
+    -fx-background-color: -ef-bg3;
+}
+.table-row-cell:selected .table-cell {
+    -fx-text-fill:        #ffffff;
+}
+
+/* Table cells vertically centered with horizontal padding only */
+.table-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill:        -ef-fg;
+    -fx-padding:          0 10 0 10;
+    -fx-alignment:        CENTER_LEFT;
+    -fx-font-size:        13px;
+}
+.table-view .placeholder .label {
+    -fx-text-fill: -ef-grey0;
+}
+
+/* ------------------------------------------------------------------
+   TreeView (sidebar)
+   ------------------------------------------------------------------ */
+.tree-view {
+    -fx-background-color: -ef-bg0;
+    -fx-border-color:     transparent;
+}
+.tree-cell {
+    -fx-cell-size:        28px;
+    -fx-background-color: transparent;
+    -fx-text-fill:        -ef-fg;
+    -fx-padding:          0 6 0 6;
+    -fx-alignment:        CENTER_LEFT;
+}
+.tree-cell:selected {
+    -fx-background-color: -ef-bg2;
+    -fx-text-fill:        -ef-green;
+    -fx-font-weight:      bold;
+}
+.tree-cell:hover {
+    -fx-background-color: -ef-bg1;
+}
+.tree-view .tree-disclosure-node .arrow {
+    -fx-background-color: -ef-grey1;
+}
+
+/* ------------------------------------------------------------------
+   SplitPane
+   ------------------------------------------------------------------ */
+.split-pane {
+    -fx-background-color: -ef-bg0;
+    -fx-padding:          0;
+}
+.split-pane-divider {
+    -fx-background-color: -ef-bg2;
+    -fx-padding:          0 1 0 1;
+}
+
+/* ------------------------------------------------------------------
+   ScrollBar
+   ------------------------------------------------------------------ */
+.scroll-bar {
+    -fx-background-color: transparent;
+}
+.scroll-bar .thumb {
+    -fx-background-color: -ef-bg3;
+    -fx-background-radius: 3;
+}
+.scroll-bar .thumb:hover {
+    -fx-background-color: -ef-grey0;
+}
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow {
+    -fx-shape: "";
+    -fx-padding: 0;
+}
+
+/* ------------------------------------------------------------------
+   ScrollPane
+   ------------------------------------------------------------------ */
+.scroll-pane {
+    -fx-background-color: -ef-bg0;
+    -fx-background:       -ef-bg0;
+    -fx-border-color:     transparent;
+}
+.scroll-pane .viewport {
+    -fx-background-color: -ef-bg0;
+}
+.scroll-pane:focused {
+    -fx-background-color: -ef-bg0;
+}
+
+/* ------------------------------------------------------------------
+   Tooltip
+   ------------------------------------------------------------------ */
+.tooltip {
+    -fx-background-color: -ef-bg1;
+    -fx-text-fill:        -ef-fg;
+    -fx-border-color:     -ef-bg3;
+    -fx-border-radius:    4;
+    -fx-background-radius: 4;
+    -fx-font-size:        12px;
+}
+
+/* ------------------------------------------------------------------
+   ContextMenu
+   ------------------------------------------------------------------ */
+.context-menu {
+    -fx-background-color: -ef-bg1;
+    -fx-border-color:     -ef-bg3;
+    -fx-border-radius:    6;
+    -fx-background-radius: 6;
+    -fx-padding:          4;
+    -fx-effect:           dropshadow(gaussian, rgba(0,0,0,0.4), 10, 0.1, 0, 2);
+}
+.menu-item {
+    -fx-background-color: transparent;
+    -fx-padding:          6 14;
+}
+.menu-item .label {
+    -fx-text-fill: -ef-fg;
+}
+.menu-item:hover, .menu-item:focused {
+    -fx-background-color: -ef-bg2;
+}
+.separator-menu-item .line {
+    -fx-border-color: -ef-bg3;
+}
+
+/* ------------------------------------------------------------------
+   Dialog / Alert
+   ------------------------------------------------------------------ */
+.dialog-pane {
+    -fx-background-color: -ef-bg0;
+    -fx-border-color:     -ef-bg3;
+    -fx-border-width:     1;
+    -fx-border-radius:    6;
+    -fx-background-radius: 6;
+}
+.dialog-pane > .button-bar > .container {
+    -fx-background-color: -ef-bg1;
+    -fx-padding:          10 16;
+}
+.dialog-pane > .button-bar .button {
+    -fx-background-color: -ef-bg2;
+    -fx-text-fill:        -ef-fg;
+    -fx-font-weight:      bold;
+    -fx-background-radius: 5;
+    -fx-padding:          6 14;
+}
+.dialog-pane > .button-bar .button:hover {
+    -fx-background-color: -ef-bg3;
+}
+.dialog-pane > .button-bar .button:default {
+    -fx-background-color: -ef-green;
+    -fx-text-fill:        -ef-bg0;
+}
+.dialog-pane > .button-bar .button:default:hover {
+    -fx-background-color: derive(-ef-green, 15%);
+}
+.dialog-pane:header .header-panel {
+    -fx-background-color: -ef-bg1;
+    -fx-padding:          12 16;
+}
+.dialog-pane:header .header-panel .label {
+    -fx-text-fill:   -ef-fg;
+    -fx-font-size:   14px;
+    -fx-font-weight: bold;
+}
+.dialog-pane > .content {
+    -fx-background-color: -ef-bg0;
+    -fx-padding:          16;
+}
+.dialog-pane > .content .label {
+    -fx-text-fill: -ef-fg;
+}
+.dialog-pane .content.label {
+    -fx-text-fill: -ef-fg;
+}
+
+/* ------------------------------------------------------------------
+   Custom App Classes
+   ------------------------------------------------------------------ */
+
+.top-nav {
+    -fx-background-color: -ef-bg1;
+    -fx-border-color:     transparent transparent -ef-bg3 transparent;
+    -fx-border-width:     0 0 1 0;
+    -fx-padding:          10 20;
+}
+
+.brand-label {
+    -fx-text-fill:   -ef-green;
+    -fx-font-weight: bold;
+    -fx-font-size:   18px;
+}
+
+.sidebar {
+    -fx-background-color: -ef-bg0;
+    -fx-border-color:     transparent -ef-bg2 transparent transparent;
+    -fx-border-width:     0 1 0 0;
+}
+.sidebar-title {
+    -fx-text-fill:   -ef-grey1;
+    -fx-font-weight: bold;
+    -fx-font-size:   11px;
+    -fx-padding:     0 5 5 5;
+}
+
+.breadcrumb-bar {
+    -fx-background-color:  -ef-bg1;
+    -fx-border-color:      -ef-bg2;
+    -fx-border-radius:     5;
+    -fx-background-radius: 5;
+    -fx-padding:           6 12;
+}
+
+.storage-label {
+    -fx-text-fill: -ef-grey1;
+    -fx-font-size: 12px;
+}
+.storage-label:hover {
+    -fx-text-fill: -ef-fg;
+    -fx-underline: true;
+}
+
+/* ------------------------------------------------------------------
+   Chart & Analytics
+   ------------------------------------------------------------------ */
+.chart {
+    -fx-padding: 5;
+}
+.chart-pie {
+    -fx-border-color: -ef-bg0;
+    -fx-border-width: 1.5;
+}
+.chart-pie-label {
+    -fx-fill: -ef-fg;
+    -fx-font-size: 11px;
+}
+.chart-pie-label-line {
+    -fx-stroke: -ef-grey1;
+}
+.chart-legend {
+    -fx-background-color: transparent;
+}
+.chart-legend-item {
+    -fx-text-fill: -ef-fg;
+}
+.progress-bar > .track {
+    -fx-background-color: -ef-bg0;
+    -fx-background-radius: 6;
+}
+.progress-bar > .bar {
+    -fx-background-radius: 6;
+    -fx-padding: 4;
+}

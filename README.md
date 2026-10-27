@@ -103,13 +103,37 @@ graph TD
 
 ## 🛠️ Installation & Setup
 
-### Prerequisites
-- **Java JDK 17** (for the Backend)
-- **Java JDK 11** (for the Frontend)
-- **Python 3.8+** (for the AI Microservice)
-- **MySQL Server** running locally
+### 🐳 Option A: 1-Command Docker Deployment (Recommended)
 
-### 1. Database Setup
+The easiest way to run the entire server stack (Database, AI Service, and Spring Boot Backend) with zero manual environment configuration:
+
+```bash
+# 1. Start all server containers
+./docker-start.sh
+
+# Or directly with Docker Compose:
+docker compose up --build -d
+```
+
+Once all containers are reported healthy, launch the JavaFX Desktop Client:
+```bash
+cd Cloud_Frontend_Workspace/frontend
+./mvnw javafx:run
+```
+
+For full environment options (`.env`), persistent storage volume management, and teardown instructions, see [DOCKER.md](DOCKER.md).
+
+---
+
+### 💻 Option B: Manual Local Setup (Without Docker)
+
+#### Prerequisites
+- **Java JDK 21 / 17** (for Backend)
+- **Java JDK 11** (for Frontend)
+- **Python 3.10+** (for AI Microservice)
+- **MariaDB / MySQL Server** running locally on port 3306
+
+#### 1. Database Setup
 1. Open your MySQL terminal or database client.
 2. Create a new database named `cloud_db`:
    ```sql

@@ -7,19 +7,24 @@ import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Main dashboard screen redesigned as a modern split-pane Drive interface.
  * Left: Hierarchical folder tree sidebar
- * Right: Breadcrumbs, search & category filters, action buttons, and drive table
+ * Right: Breadcrumbs, search & category filters, action buttons, and dual view (Grid / Table)
  */
 public class DashboardScreen {
 
@@ -28,6 +33,8 @@ public class DashboardScreen {
     private final FolderTreePane folderTreePane;
     private final BreadcrumbBar breadcrumbBar;
     private final TableView<DriveItem> table;
+    private final DriveGridView driveGridView;
+    private final StackPane viewStack;
     private final ObservableList<DriveItem> masterData;
     private final FilteredList<DriveItem> filteredData;
 
@@ -37,6 +44,9 @@ public class DashboardScreen {
     private final Button deleteButton;
     private final Button refreshButton;
     private final Button logoutButton;
+    private final Button storageAnalyticsButton;
+    private final Button gridViewButton;
+    private final Button listViewButton;
     private final TextField searchField;
     private final ComboBox<String> categoryComboBox;
     private final Label storageStatsLabel;
@@ -71,101 +81,160 @@ public class DashboardScreen {
 
     public DashboardScreen(String username) {
         view = new BorderPane();
-        view.setStyle("-fx-background-color: #121212;");
 
         // 1. TOP NAVIGATION
         HBox topNav = new HBox(15);
-        topNav.setPadding(new Insets(12, 20, 12, 20));
-        topNav.setStyle("-fx-background-color: #1E1E1E; -fx-border-color: #2D2D2D; -fx-border-width: 0 0 1 0;");
+        topNav.setPadding(new Insets(10, 20, 10, 20));
         topNav.setAlignment(Pos.CENTER_LEFT);
+        topNav.getStyleClass().add("top-nav");
 
+        Node cloudIcon = IconFactory.cloudIcon(20);
         Label brandLabel = new Label("Mini Cloud Drive");
-        brandLabel.setFont(Font.font("Arial", FontWeight.BOLD, 20));
-        brandLabel.setStyle("-fx-text-fill: #3b82f6;");
+        brandLabel.getStyleClass().add("brand-label");
+
+        HBox brandBox = new HBox(8, cloudIcon, brandLabel);
+        brandBox.setAlignment(Pos.CENTER_LEFT);
 
         HBox spacer = new HBox();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        storageAnalyticsButton = new Button("Storage Analytics");
+        storageAnalyticsButton.setGraphic(IconFactory.chartIcon(14));
+        storageAnalyticsButton.setTooltip(new Tooltip("View storage breakdown & quota usage"));
+
         storageStatsLabel = new Label("Storage: calculating...");
-        storageStatsLabel.setStyle("-fx-text-fill: #888888; -fx-font-size: 12px;");
+        storageStatsLabel.getStyleClass().add("storage-label");
+        storageStatsLabel.setCursor(Cursor.HAND);
+        storageStatsLabel.setTooltip(new Tooltip("Click to view detailed storage analytics and quota distribution"));
 
         Label userLabel = new Label("Welcome, " + username);
-        userLabel.setStyle("-fx-text-fill: #e0e0e0; -fx-font-weight: bold;");
+        userLabel.setStyle("-fx-font-weight: bold;");
 
         logoutButton = new Button("Logout");
-        logoutButton.setStyle("-fx-background-color: transparent; -fx-border-color: #ef4444; -fx-text-fill: #ef4444; -fx-border-radius: 5; -fx-cursor: hand; -fx-padding: 4 12;");
+        logoutButton.setGraphic(IconFactory.logoutIcon(14));
+        logoutButton.getStyleClass().add("btn-danger");
 
-        topNav.getChildren().addAll(brandLabel, spacer, storageStatsLabel, userLabel, logoutButton);
+        topNav.getChildren().addAll(brandBox, spacer, storageAnalyticsButton, storageStatsLabel, userLabel, logoutButton);
         view.setTop(topNav);
 
         // 2. FOLDER TREE SIDEBAR (LEFT)
         folderTreePane = new FolderTreePane();
 
         // 3. MAIN CONTENT (RIGHT)
-        VBox rightContent = new VBox(12);
-        rightContent.setPadding(new Insets(15, 20, 15, 20));
-        rightContent.setStyle("-fx-background-color: #121212;");
+        VBox rightContent = new VBox(10);
+        rightContent.setPadding(new Insets(12, 16, 12, 16));
         VBox.setVgrow(rightContent, Priority.ALWAYS);
 
         // Actions & Filters Toolbar
-        HBox toolbar = new HBox(10);
+        HBox toolbar = new HBox(8);
         toolbar.setAlignment(Pos.CENTER_LEFT);
 
-        newFolderButton = new Button("📁 + New Folder");
-        newFolderButton.setStyle("-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5; -fx-padding: 7 14; -fx-cursor: hand;");
+        newFolderButton = new Button("New Folder");
+        newFolderButton.setGraphic(IconFactory.newFolderIcon(14));
+        newFolderButton.getStyleClass().add("btn-primary");
 
-        uploadButton = new Button("⬆ Upload File");
-        uploadButton.setStyle("-fx-background-color: #059669; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5; -fx-padding: 7 14; -fx-cursor: hand;");
+        uploadButton = new Button("Upload");
+        uploadButton.setGraphic(IconFactory.uploadIcon(14));
+        uploadButton.getStyleClass().add("btn-success");
 
-        downloadButton = new Button("⬇ Download");
-        downloadButton.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5; -fx-padding: 7 14; -fx-cursor: hand;");
+        downloadButton = new Button("Download");
+        downloadButton.setGraphic(IconFactory.downloadIcon(14));
 
-        deleteButton = new Button("🗑 Delete");
-        deleteButton.setStyle("-fx-background-color: transparent; -fx-border-color: #ef4444; -fx-text-fill: #ef4444; -fx-border-radius: 5; -fx-cursor: hand; -fx-padding: 6 12;");
+        deleteButton = new Button("Delete");
+        deleteButton.setGraphic(IconFactory.deleteIcon(14));
+        deleteButton.getStyleClass().add("btn-danger");
 
-        refreshButton = new Button("🔄 Refresh");
-        refreshButton.setStyle("-fx-background-color: #333333; -fx-text-fill: #e0e0e0; -fx-border-radius: 5; -fx-cursor: hand; -fx-padding: 7 12;");
+        refreshButton = new Button("Refresh");
+        refreshButton.setGraphic(IconFactory.refreshIcon(14));
 
         HBox toolSpacer = new HBox();
         HBox.setHgrow(toolSpacer, Priority.ALWAYS);
 
         // Instant Search Box
         searchField = new TextField();
-        searchField.setPromptText("🔍 Search files & folders...");
+        searchField.setPromptText("Search files & folders...");
         searchField.setPrefWidth(200);
-        searchField.setStyle("-fx-background-color: #1E1E1E; -fx-text-fill: white; -fx-border-color: #2D2D2D; -fx-border-radius: 5; -fx-padding: 6 10;");
 
         // Category Filter
         categoryComboBox = new ComboBox<>();
-        categoryComboBox.getItems().addAll("All Categories", "Documents", "Code", "Media", "Archives", "Uncategorized", "Folder");
+        categoryComboBox.getItems().addAll("All Categories", "Documents", "Code", "Media", "Archives", "Executables", "System & Logs", "Uncategorized", "Folder");
         categoryComboBox.setValue("All Categories");
-        categoryComboBox.setStyle("-fx-background-color: #1E1E1E; -fx-text-fill: white; -fx-border-color: #2D2D2D; -fx-border-radius: 5;");
 
-        toolbar.getChildren().addAll(newFolderButton, uploadButton, downloadButton, deleteButton, refreshButton, toolSpacer, searchField, categoryComboBox);
+        // View Mode Toggle (Grid View ⊞ vs List View ☰)
+        gridViewButton = new Button();
+        gridViewButton.setGraphic(IconFactory.gridIcon(14));
+        gridViewButton.setTooltip(new Tooltip("Grid View"));
+        gridViewButton.getStyleClass().add("btn-primary"); // Active by default
+
+        listViewButton = new Button();
+        listViewButton.setGraphic(IconFactory.listIcon(14));
+        listViewButton.setTooltip(new Tooltip("List View"));
+
+        HBox viewToggleBox = new HBox(2, gridViewButton, listViewButton);
+        viewToggleBox.setAlignment(Pos.CENTER);
+
+        toolbar.getChildren().addAll(
+                newFolderButton, uploadButton, downloadButton, deleteButton, refreshButton,
+                toolSpacer, searchField, categoryComboBox, viewToggleBox
+        );
 
         // Breadcrumb Navigation Bar
         breadcrumbBar = new BreadcrumbBar();
 
-        // Central Drive Table
+        // Data lists
         masterData = FXCollections.observableArrayList();
         filteredData = new FilteredList<>(masterData, p -> true);
 
+        // View Mode 1: Central Drive Table (List View)
         table = new TableView<>();
-        table.setStyle("-fx-control-inner-background: #1E1E1E; -fx-background-color: #1E1E1E; -fx-table-cell-border-color: #2D2D2D; -fx-text-fill: white; -fx-border-color: #2D2D2D; -fx-border-radius: 5;");
         VBox.setVgrow(table, Priority.ALWAYS);
 
         TableColumn<DriveItem, String> nameCol = new TableColumn<>("Name");
         nameCol.setCellValueFactory(new PropertyValueFactory<>("displayName"));
-        nameCol.setPrefWidth(260);
+        nameCol.setPrefWidth(280);
+        nameCol.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    setText(item);
+                    DriveItem driveItem = getTableRow() != null ? getTableRow().getItem() : null;
+                    if (driveItem == null && getIndex() >= 0 && getIndex() < getTableView().getItems().size()) {
+                        driveItem = getTableView().getItems().get(getIndex());
+                    }
+                    if (driveItem != null) {
+                        setGraphic(IconFactory.iconForType(driveItem.getName(), driveItem.getType(), driveItem.isFolder(), 16));
+                    } else {
+                        setGraphic(null);
+                    }
+                    setGraphicTextGap(10);
+                    setAlignment(Pos.CENTER_LEFT);
+                }
+            }
+        });
 
         TableColumn<DriveItem, String> locCol = new TableColumn<>("Location");
         locCol.setCellValueFactory(new PropertyValueFactory<>("location"));
         locCol.setPrefWidth(160);
-        locCol.setStyle("-fx-text-fill: #9ca3af;");
+        locCol.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item);
+                    setStyle("-fx-text-fill: #859289; -fx-alignment: CENTER-LEFT;");
+                }
+            }
+        });
 
         TableColumn<DriveItem, String> typeCol = new TableColumn<>("Type");
         typeCol.setCellValueFactory(new PropertyValueFactory<>("type"));
-        typeCol.setPrefWidth(100);
+        typeCol.setPrefWidth(110);
 
         TableColumn<DriveItem, String> sizeCol = new TableColumn<>("Size");
         sizeCol.setCellValueFactory(new PropertyValueFactory<>("size"));
@@ -173,27 +242,92 @@ public class DashboardScreen {
 
         TableColumn<DriveItem, String> catCol = new TableColumn<>("AI Category");
         catCol.setCellValueFactory(new PropertyValueFactory<>("category"));
-        catCol.setPrefWidth(130);
-        catCol.setStyle("-fx-text-fill: #10b981; -fx-font-weight: bold;");
+        catCol.setPrefWidth(140);
+        catCol.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(item);
+                    if ("Folder".equalsIgnoreCase(item)) {
+                        setStyle("-fx-text-fill: #7a8478; -fx-alignment: CENTER-LEFT;");
+                    } else {
+                        setStyle("-fx-text-fill: #83c092; -fx-font-weight: bold; -fx-alignment: CENTER-LEFT;");
+                    }
+                }
+            }
+        });
 
         table.getColumns().addAll(nameCol, locCol, typeCol, sizeCol, catCol);
-
-        // Connect Category Filter to FilteredList
-        categoryComboBox.valueProperty().addListener((obs, oldVal, newVal) -> applyFilters());
 
         SortedList<DriveItem> sortedData = new SortedList<>(filteredData);
         sortedData.comparatorProperty().bind(table.comparatorProperty());
         table.setItems(sortedData);
 
-        rightContent.getChildren().addAll(toolbar, breadcrumbBar.getContainer(), table);
+        // View Mode 2: Grid View (Large Icons like GNOME Files / Windows Explorer)
+        driveGridView = new DriveGridView(filteredData);
+        VBox.setVgrow(driveGridView.getContainer(), Priority.ALWAYS);
+
+        // Synchronize selection between Table and Grid View
+        table.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal != driveGridView.getSelectedItem()) {
+                driveGridView.setSelectedItem(newVal);
+            }
+        });
+
+        driveGridView.setOnItemSelected(item -> {
+            if (item != null && item != table.getSelectionModel().getSelectedItem()) {
+                table.getSelectionModel().select(item);
+            }
+        });
+
+        viewStack = new StackPane(table, driveGridView.getContainer());
+        VBox.setVgrow(viewStack, Priority.ALWAYS);
+
+        // Default to Grid View (as requested)
+        setViewMode(true);
+
+        gridViewButton.setOnAction(e -> setViewMode(true));
+        listViewButton.setOnAction(e -> setViewMode(false));
+
+        // Connect Category Filter to FilteredList
+        categoryComboBox.valueProperty().addListener((obs, oldVal, newVal) -> applyFilters());
+
+        rightContent.getChildren().addAll(toolbar, breadcrumbBar.getContainer(), viewStack);
 
         // 4. SPLIT PANE INTEGRATION
         splitPane = new SplitPane();
         splitPane.getItems().addAll(folderTreePane.getContainer(), rightContent);
-        splitPane.setDividerPositions(0.24);
-        splitPane.setStyle("-fx-background-color: #121212; -fx-box-border: transparent;");
+        splitPane.setDividerPositions(0.22);
 
         view.setCenter(splitPane);
+    }
+
+    public void setViewMode(boolean isGrid) {
+        if (isGrid) {
+            driveGridView.getContainer().setVisible(true);
+            driveGridView.getContainer().setManaged(true);
+            table.setVisible(false);
+            table.setManaged(false);
+
+            if (!gridViewButton.getStyleClass().contains("btn-primary")) {
+                gridViewButton.getStyleClass().add("btn-primary");
+            }
+            listViewButton.getStyleClass().remove("btn-primary");
+        } else {
+            driveGridView.getContainer().setVisible(false);
+            driveGridView.getContainer().setManaged(false);
+            table.setVisible(true);
+            table.setManaged(true);
+
+            if (!listViewButton.getStyleClass().contains("btn-primary")) {
+                listViewButton.getStyleClass().add("btn-primary");
+            }
+            gridViewButton.getStyleClass().remove("btn-primary");
+        }
     }
 
     public void applyFilters() {
@@ -216,6 +350,7 @@ public class DashboardScreen {
     public FolderTreePane getFolderTreePane() { return folderTreePane; }
     public BreadcrumbBar getBreadcrumbBar() { return breadcrumbBar; }
     public TableView<DriveItem> getTable() { return table; }
+    public DriveGridView getDriveGridView() { return driveGridView; }
     public ObservableList<DriveItem> getMasterData() { return masterData; }
 
     public Button getUploadButton() { return uploadButton; }
@@ -224,6 +359,7 @@ public class DashboardScreen {
     public Button getDeleteButton() { return deleteButton; }
     public Button getRefreshButton() { return refreshButton; }
     public Button getLogoutButton() { return logoutButton; }
+    public Button getStorageAnalyticsButton() { return storageAnalyticsButton; }
     public TextField getSearchField() { return searchField; }
     public ComboBox<String> getCategoryComboBox() { return categoryComboBox; }
     public Label getStorageStatsLabel() { return storageStatsLabel; }

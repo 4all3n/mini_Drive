@@ -62,4 +62,22 @@ public interface FileRepository extends JpaRepository<FileMetadata, Long> {
      */
     @Query("SELECT f FROM FileMetadata f WHERE f.owner = :owner AND LOWER(f.fileName) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<FileMetadata> searchByOwnerAndFileName(@Param("owner") User owner, @Param("query") String query);
+
+    /**
+     * Find all files that are uncategorized (e.g., uploaded while AI service was offline).
+     */
+    @Query("SELECT f FROM FileMetadata f WHERE f.category = 'Uncategorized' OR f.category IS NULL OR TRIM(f.category) = ''")
+    List<FileMetadata> findUncategorizedFiles();
+
+    /**
+     * Count uncategorized files to perform cheap checks before processing.
+     */
+    @Query("SELECT COUNT(f) FROM FileMetadata f WHERE f.category = 'Uncategorized' OR f.category IS NULL OR TRIM(f.category) = ''")
+    long countUncategorizedFiles();
+
+    /**
+     * Find uncategorized files owned by a specific user.
+     */
+    @Query("SELECT f FROM FileMetadata f WHERE f.owner = :owner AND (f.category = 'Uncategorized' OR f.category IS NULL OR TRIM(f.category) = '')")
+    List<FileMetadata> findUncategorizedFilesByOwner(@Param("owner") User owner);
 }

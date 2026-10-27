@@ -6,6 +6,7 @@ import javafx.scene.layout.GridPane;
 
 /**
  * Modal dialog displaying detailed properties of a file or folder.
+ * Styled with Everforest dark theme.
  */
 public class PropertiesDialog {
 
@@ -14,8 +15,14 @@ public class PropertiesDialog {
         alert.setTitle("Properties - " + title);
         alert.setHeaderText("Item Information");
 
+        try {
+            alert.getDialogPane().getStylesheets().add(
+                    PropertiesDialog.class.getResource("/css/everforest.css").toExternalForm()
+            );
+        } catch (Exception ignored) {}
+
         GridPane grid = new GridPane();
-        grid.setHgap(10);
+        grid.setHgap(12);
         grid.setVgap(8);
         grid.setPadding(new Insets(15));
 
@@ -31,10 +38,10 @@ public class PropertiesDialog {
                     String val = kv[1].replace("\"", "").trim();
 
                     Label keyLabel = new Label(formatKey(key) + ":");
-                    keyLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #555555;");
+                    keyLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #859289;");
 
                     Label valLabel = new Label(val);
-                    valLabel.setStyle("-fx-text-fill: #111111;");
+                    valLabel.setStyle("-fx-text-fill: #d3c6aa;");
 
                     grid.add(keyLabel, 0, row);
                     grid.add(valLabel, 1, row);
@@ -42,7 +49,9 @@ public class PropertiesDialog {
                 }
             }
         } else {
-            grid.add(new Label(rawJsonOrInfo != null ? rawJsonOrInfo : "No properties available."), 0, 0);
+            Label label = new Label(rawJsonOrInfo != null ? rawJsonOrInfo : "No properties available.");
+            label.setStyle("-fx-text-fill: #d3c6aa;");
+            grid.add(label, 0, 0);
         }
 
         alert.getDialogPane().setContent(grid);

@@ -2,7 +2,7 @@ package com.minicloud.client.models;
 
 /**
  * Unified model for displaying both Folders and Files in the central Drive table.
- * Supports icon differentiation (📁 vs 📄), type display, size, and category.
+ * No emoji characters — icons are rendered by the UI layer using IconFactory.
  */
 public class DriveItem {
 
@@ -26,7 +26,7 @@ public class DriveItem {
     public DriveItem(Long id, String name, String type, String size, String category, boolean folder, String uploadDate, Long parentFolderId, String location) {
         this.id = id;
         this.name = name;
-        this.displayName = (folder ? "📁  " : "📄  ") + name;
+        this.displayName = name;
         this.type = type;
         this.size = size;
         this.category = category;
@@ -56,7 +56,7 @@ public class DriveItem {
     public String getName() { return name; }
     public void setName(String name) {
         this.name = name;
-        this.displayName = (folder ? "📁  " : "📄  ") + name;
+        this.displayName = name;
     }
 
     public String getDisplayName() { return displayName; }
@@ -74,7 +74,7 @@ public class DriveItem {
     public boolean isFolder() { return folder; }
     public void setFolder(boolean folder) {
         this.folder = folder;
-        this.displayName = (folder ? "📁  " : "📄  ") + name;
+        this.displayName = name;
     }
 
     public String getUploadDate() { return uploadDate; }

@@ -56,10 +56,15 @@ public class FileNetworkService {
     }
 
     public String uploadFile(File file, String username, Long folderId) {
+        return uploadFile(file, file.getName(), username, folderId);
+    }
+
+    public String uploadFile(File file, String targetFileName, String username, Long folderId) {
         try {
             String boundary = "---MiniCloudBoundary" + System.currentTimeMillis();
             byte[] fileBytes = Files.readAllBytes(file.toPath());
-            byte[] body = buildMultipartBody(file.getName(), fileBytes, username, boundary);
+            String finalName = (targetFileName != null && !targetFileName.trim().isEmpty()) ? targetFileName : file.getName();
+            byte[] body = buildMultipartBody(finalName, fileBytes, username, boundary);
 
             String url = BASE_URL + "/upload";
             if (folderId != null) {
@@ -149,6 +154,37 @@ public class FileNetworkService {
             e.printStackTrace();
             return false;
         }
+    }
+
+    public byte[] fetchFileBytes(Long fileId) {
+        if (fileId == null) return null;
+
+        // Try /download/{id} first (canonical file streaming endpoint supported across all server builds),
+        // then fall back to /preview/{id}.
+        String[] candidateUrls = {
+                BASE_URL + "/download/" + fileId,
+                BASE_URL + "/preview/" + fileId
+        };
+
+        for (String url : candidateUrls) {
+            try {
+                HttpRequest request = withAuth(HttpRequest.newBuilder())
+                        .uri(URI.create(url))
+                        .GET()
+                        .build();
+
+                HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                if (response.statusCode() == 200 && response.body() != null) {
+                    System.out.println("[FileNetworkService] Successfully fetched " + response.body().length + " bytes from " + url);
+                    return response.body();
+                } else {
+                    System.err.println("[FileNetworkService] Request to " + url + " returned status: " + response.statusCode());
+                }
+            } catch (Exception e) {
+                System.err.println("[FileNetworkService] Failed to fetch bytes from " + url + ": " + e.getMessage());
+            }
+        }
+        return null;
     }
 
     public boolean deleteFile(Long fileId) {

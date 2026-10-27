@@ -66,13 +66,41 @@ def load_models():
         print("[AI Service] Emergency model trained and loaded.")
 
 
+def notify_backend_online():
+    """Notify the Spring Boot backend that the AI service is online to trigger recategorization."""
+    import time
+    import urllib.request
+
+    backend_url = os.environ.get("BACKEND_AI_NOTIFY_URL", "http://127.0.0.1:8080/api/ai/online-notify")
+    # Retry up to 15 times with 2-second delay to wait for Spring Boot backend bootup
+    for attempt in range(1, 16):
+        time.sleep(2.0)
+        try:
+            req = urllib.request.Request(backend_url, method="POST", data=b"{}")
+            req.add_header("Content-Type", "application/json")
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                resp_body = resp.read().decode("utf-8")
+                print(f"[AI Service] Successfully notified backend at {backend_url} on attempt {attempt} -> {resp_body}")
+                return
+        except Exception:
+            # Backend not ready yet; continue waiting
+            pass
+    print("[AI Service] Backend notification deferred. Backend auto-scheduler will synchronize pending files.")
+
+
 @app.on_event("startup")
 def startup_event():
     load_models()
+    import threading
+    threading.Thread(target=notify_backend_online, daemon=True).start()
 
 
 class FileData(BaseModel):
     filename: str
+
+
+class BatchFileData(BaseModel):
+    filenames: list[str]
 
 
 class DetailedPrediction(BaseModel):
@@ -123,6 +151,33 @@ def predict_category_detailed(data: FileData):
     """Explicit endpoint returning category, probability confidence, and model provenance."""
     res = predict_category(data, detailed=True)
     return res
+
+
+@app.post("/predict/batch")
+def predict_batch(data: BatchFileData):
+    """
+    Batch prediction endpoint for classifying multiple filenames simultaneously.
+    Useful for bulk recategorization and fast ingestion.
+    """
+    global active_model, active_model_name
+    if active_model is None:
+        load_models()
+
+    if not data.filenames:
+        return {"predictions": []}
+
+    clean_names = [fn.strip() for fn in data.filenames]
+    predictions = active_model.predict(clean_names)
+
+    results = []
+    for fn, pred in zip(clean_names, predictions):
+        results.append({
+            "filename": fn,
+            "category": str(pred)
+        })
+
+    print(f"[AI Batch Prediction] Classified {len(results)} files via {active_model_name}")
+    return {"predictions": results, "model_used": active_model_name}
 
 
 @app.get("/evaluate")

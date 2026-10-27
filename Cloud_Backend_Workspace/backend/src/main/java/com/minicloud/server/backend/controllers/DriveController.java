@@ -9,6 +9,7 @@ import com.minicloud.server.backend.models.dto.FolderMetadataDTO;
 import com.minicloud.server.backend.repository.FileRepository;
 import com.minicloud.server.backend.repository.FolderRepository;
 import com.minicloud.server.backend.repository.UserRepository;
+import com.minicloud.server.backend.services.AiCategorizationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -36,13 +37,16 @@ public class DriveController {
     private final FolderRepository folderRepository;
     private final FileRepository fileRepository;
     private final UserRepository userRepository;
+    private final AiCategorizationService aiService;
 
     public DriveController(FolderRepository folderRepository,
                            FileRepository fileRepository,
-                           UserRepository userRepository) {
+                           UserRepository userRepository,
+                           AiCategorizationService aiService) {
         this.folderRepository = folderRepository;
         this.fileRepository = fileRepository;
         this.userRepository = userRepository;
+        this.aiService = aiService;
     }
 
     private User getAuthenticatedUser() {
@@ -64,6 +68,13 @@ public class DriveController {
             @RequestParam(value = "folderId", required = false) Long folderId) {
         try {
             User owner = getAuthenticatedUser();
+
+            // Self-healing: if AI came online, recategorize any files uploaded while offline
+            try {
+                if (aiService != null && aiService.isOnline()) {
+                    aiService.recategorizeUserFiles(owner);
+                }
+            } catch (Exception ignored) {}
 
             List<FolderMetadata> folders;
             List<FileMetadata> files;

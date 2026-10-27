@@ -1,0 +1,11 @@
+.git/
+.gitignore
+.github/
+.vscode/
+.venv/
+__pycache__/
+*.log
+Cloud_Frontend_Workspace/
+documented/
+IDP/
+scripts/generate_*.py

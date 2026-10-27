@@ -4,8 +4,6 @@ import com.minicloud.client.models.FolderRecord;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 
 import java.util.HashMap;
 import java.util.List;
@@ -15,6 +13,7 @@ import java.util.function.Consumer;
 /**
  * Left sidebar component displaying the virtual folder hierarchy in a TreeView.
  * Supports navigation and folder selection.
+ * Styled with Everforest dark theme; uses IconFactory for icons without emojis.
  */
 public class FolderTreePane {
 
@@ -42,27 +41,25 @@ public class FolderTreePane {
 
         @Override
         public String toString() {
-            return (root ? "☁  " : "📁  ") + name;
+            return name;
         }
     }
 
     public FolderTreePane() {
         container = new VBox(10);
         container.setPadding(new Insets(15, 10, 15, 10));
-        container.setStyle("-fx-background-color: #1a1a1a; -fx-border-color: #2D2D2D; -fx-border-width: 0 1 0 0;");
+        container.getStyleClass().add("sidebar");
         container.setPrefWidth(220);
         container.setMinWidth(180);
 
         Label title = new Label("FOLDERS");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 12));
-        title.setStyle("-fx-text-fill: #888888; -fx-padding: 0 5 5 5;");
+        title.getStyleClass().add("sidebar-title");
 
         FolderNode rootNode = new FolderNode(null, "My Drive", true);
         rootItem = new TreeItem<>(rootNode);
         rootItem.setExpanded(true);
 
         treeView = new TreeView<>(rootItem);
-        treeView.setStyle("-fx-control-inner-background: #1a1a1a; -fx-background-color: #1a1a1a; -fx-text-fill: white; -fx-border-color: transparent;");
         treeView.setShowRoot(true);
 
         // User click selection listener - only fires when user interacts, not during programmatic updates
@@ -72,6 +69,24 @@ public class FolderTreePane {
             }
         });
 
+        // Set custom cell factory to display colored folder/cloud icon
+        treeView.setCellFactory(tv -> new TreeCell<FolderNode>() {
+            @Override
+            protected void updateItem(FolderNode item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    setText(item.getName());
+                    if (item.isRoot()) {
+                        setGraphic(IconFactory.cloudIcon(16));
+                    } else {
+                        setGraphic(IconFactory.folderIcon(16));
+                    }
+                }
+            }
+        });
         container.getChildren().addAll(title, treeView);
     }
 

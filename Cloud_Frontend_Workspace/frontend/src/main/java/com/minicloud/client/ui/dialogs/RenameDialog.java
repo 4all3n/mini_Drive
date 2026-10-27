@@ -8,6 +8,7 @@ import java.util.Optional;
 
 /**
  * Modal dialog for renaming a file or virtual folder.
+ * Styled with Everforest dark theme.
  */
 public class RenameDialog {
 
@@ -15,6 +16,12 @@ public class RenameDialog {
         Dialog<String> dialog = new Dialog<>();
         dialog.setTitle(isFolder ? "Rename Folder" : "Rename File");
         dialog.setHeaderText("Enter a new name for " + currentName);
+
+        try {
+            dialog.getDialogPane().getStylesheets().add(
+                    RenameDialog.class.getResource("/css/everforest.css").toExternalForm()
+            );
+        } catch (Exception ignored) {}
 
         ButtonType renameButtonType = new ButtonType("Rename", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(renameButtonType, ButtonType.CANCEL);

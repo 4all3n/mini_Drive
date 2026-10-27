@@ -56,6 +56,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints — no token required
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/ai/**").permitAll()
                 .requestMatchers("/admin/**").permitAll()
                 .requestMatchers("/error").permitAll()
                 // All other endpoints (especially /api/files/**) require authentication

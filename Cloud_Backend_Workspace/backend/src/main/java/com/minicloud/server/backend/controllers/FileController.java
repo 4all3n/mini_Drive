@@ -21,7 +21,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -156,6 +158,14 @@ public class FileController {
             @RequestParam(value = "folderId", required = false) Long folderId) {
         try {
             User owner = getAuthenticatedUser();
+
+            // Self-healing: if AI came online, recategorize any files uploaded while offline
+            try {
+                if (aiService != null && aiService.isOnline()) {
+                    aiService.recategorizeUserFiles(owner);
+                }
+            } catch (Exception ignored) {}
+
             List<FileMetadata> files;
 
             if (folderId == null) {
@@ -196,6 +206,47 @@ public class FileController {
                 return ResponseEntity.ok()
                         .header(HttpHeaders.CONTENT_DISPOSITION,
                                 "attachment; filename=\"" + metadata.getFileName() + "\"")
+                        .body(resource);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "File not found on disk"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage() != null ? e.getMessage() : "Unknown error"));
+        }
+    }
+
+    // ======================== PREVIEW ========================
+
+    /**
+     * Preview a file by ID (inline streaming). Verifies ownership via JWT.
+     */
+    @GetMapping("/preview/{id}")
+    public ResponseEntity<?> previewFile(@PathVariable Long id) {
+        try {
+            User owner = getAuthenticatedUser();
+            FileMetadata metadata = fileRepository.findByIdAndOwner(id, owner)
+                    .orElseThrow(() -> new RuntimeException("File not found or access denied"));
+
+            Path filePath = storageService.getFilePath(owner.getUsername(), metadata.getStoredName());
+            org.springframework.core.io.Resource resource = new UrlResource(filePath.toUri());
+
+            if (resource.exists() && resource.isReadable()) {
+                String contentType = metadata.getFileType();
+                if (contentType == null || contentType.isBlank() || contentType.equals("application/octet-stream")) {
+                    try {
+                        contentType = java.nio.file.Files.probeContentType(filePath);
+                    } catch (Exception ignored) {}
+                }
+                if (contentType == null) {
+                    contentType = "application/octet-stream";
+                }
+
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_TYPE, contentType)
+                        .header(HttpHeaders.CONTENT_DISPOSITION,
+                                "inline; filename=\"" + metadata.getFileName() + "\"")
                         .body(resource);
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -371,21 +422,48 @@ public class FileController {
     // ======================== STATS ========================
 
     /**
-     * Returns storage statistics for the authenticated user.
+     * Returns storage statistics for the authenticated user including per-category breakdown and quota.
      */
     @GetMapping("/stats")
     public ResponseEntity<?> getUserStats() {
         try {
             User owner = getAuthenticatedUser();
+            List<FileMetadata> files = fileRepository.findByOwner(owner);
             long totalSize = fileRepository.sumFileSizeByOwner(owner);
-            long fileCount = fileRepository.findByOwner(owner).size();
+            long fileCount = files.size();
 
-            return ResponseEntity.ok(Map.of(
-                    "username", owner.getUsername(),
-                    "totalFiles", fileCount,
-                    "totalSizeBytes", totalSize,
-                    "totalSizeMB", String.format("%.2f", totalSize / (1024.0 * 1024.0))
-            ));
+            long quotaBytes = 500L * 1024L * 1024L; // 500 MB default quota
+            double quotaUsedPercent = (totalSize * 100.0) / quotaBytes;
+            if (quotaUsedPercent > 100.0) quotaUsedPercent = 100.0;
+
+            Map<String, Long> categorySizes = new HashMap<>();
+            Map<String, Long> categoryCounts = new HashMap<>();
+
+            for (FileMetadata f : files) {
+                String cat = f.getCategory() != null && !f.getCategory().isBlank()
+                        ? f.getCategory() : "Uncategorized";
+                categorySizes.put(cat, categorySizes.getOrDefault(cat, 0L) + f.getFileSize());
+                categoryCounts.put(cat, categoryCounts.getOrDefault(cat, 0L) + 1L);
+            }
+
+            Map<String, Double> categorySizeMB = new HashMap<>();
+            for (Map.Entry<String, Long> entry : categorySizes.entrySet()) {
+                categorySizeMB.put(entry.getKey(), Math.round((entry.getValue() / (1024.0 * 1024.0)) * 100.0) / 100.0);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("username", owner.getUsername());
+            response.put("totalFiles", fileCount);
+            response.put("totalSizeBytes", totalSize);
+            response.put("totalSizeMB", String.format(Locale.US, "%.2f", totalSize / (1024.0 * 1024.0)));
+            response.put("quotaSizeBytes", quotaBytes);
+            response.put("quotaSizeMB", 500.0);
+            response.put("quotaUsedPercent", Math.round(quotaUsedPercent * 10.0) / 10.0);
+            response.put("categorySizes", categorySizes);
+            response.put("categoryCounts", categoryCounts);
+            response.put("categorySizeMB", categorySizeMB);
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", e.getMessage() != null ? e.getMessage() : "Unknown error"));

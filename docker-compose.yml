@@ -1,53 +1,82 @@
 version: '3.8'
 
+# ==============================================================================
+# Mini Cloud Drive - Master Docker Compose Orchestration
+# ==============================================================================
+# Services:
+#   1. database    - MariaDB 10.11 with UTF8MB4 & persistent volume
+#   2. ai-service  - Python FastAPI ML microservice (Linear SVM & Naive Bayes)
+#   3. backend     - Spring Boot 4 REST API with JWT Auth & Storage engine
+# ==============================================================================
+
 services:
+  # ----------------------------------------------------------------------------
+  # 1. Database Service (MariaDB)
+  # ----------------------------------------------------------------------------
   database:
     image: mariadb:10.11
-    container_name: minidrive-mariadb
-    restart: always
+    container_name: minidrive-database
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: cloud_db
-      MYSQL_USER: app_user
-      MYSQL_PASSWORD: '7317355'
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-cloud_db}
+      MYSQL_USER: ${DB_USER:-app_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-7317355}
     ports:
-      - "3306:3306"
+      - "${DB_PORT:-3306}:3306"
     volumes:
       - mariadb_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - minidrive-net
 
+  # ----------------------------------------------------------------------------
+  # 2. AI Categorization Microservice (FastAPI + Scikit-Learn)
+  # ----------------------------------------------------------------------------
   ai-service:
     build:
       context: ./model
       dockerfile: Dockerfile
     container_name: minidrive-ai-service
-    restart: always
+    restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "${AI_SERVICE_PORT:-8000}:8000"
+    environment:
+      - BACKEND_AI_NOTIFY_URL=http://backend:8080/api/ai/online-notify
     healthcheck:
-      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/docs\")'"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8000/health\")'"]
+      interval: 5s
+      timeout: 3s
+      retries: 8
+      start_period: 5s
+    networks:
+      - minidrive-net
 
+  # ----------------------------------------------------------------------------
+  # 3. Backend REST API Service (Spring Boot)
+  # ----------------------------------------------------------------------------
   backend:
     build:
       context: ./Cloud_Backend_Workspace/backend
       dockerfile: Dockerfile
     container_name: minidrive-backend
-    restart: always
+    restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "${BACKEND_PORT:-8080}:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://database:3306/cloud_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: app_user
-      SPRING_DATASOURCE_PASSWORD: '7317355'
+      SPRING_DATASOURCE_URL: jdbc:mysql://database:3306/${DB_NAME:-cloud_db}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-app_user}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-7317355}
       AI_SERVICE_URL: http://ai-service:8000/predict
       STORAGE_ROOT_PATH: /app/cloud_storage
+      JWT_SECRET: ${JWT_SECRET:-MiniCloudDriveSecretKey2026ForHMACSHA256SigningAlgorithm}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
     volumes:
       - backend_storage:/app/cloud_storage
     depends_on:
@@ -55,7 +84,25 @@ services:
         condition: service_healthy
       ai-service:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8080/api/ai/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 25s
+    networks:
+      - minidrive-net
 
+# ------------------------------------------------------------------------------
+# Persistent Volumes & Network Topology
+# ------------------------------------------------------------------------------
 volumes:
   mariadb_data:
+    name: minidrive_mariadb_data
   backend_storage:
+    name: minidrive_backend_storage
+
+networks:
+  minidrive-net:
+    name: minidrive_network
+    driver: bridge
