@@ -10,9 +10,13 @@ package com.minicloud.client.network;
  */
 public class ServerConfig {
 
+    static {
+        System.out.println("[ServerConfig] Connecting to MiniCloud Server at: " + getBaseUrl());
+    }
+
     public static String getHost() {
         String prop = System.getProperty("minicloud.server.host");
-        if (prop != null && !prop.trim().isEmpty()) {
+        if (prop != null && !prop.trim().isEmpty() && !prop.contains("${")) {
             return prop.trim();
         }
         String env = System.getenv("MINICLOUD_SERVER_HOST");
@@ -24,7 +28,7 @@ public class ServerConfig {
 
     public static String getPort() {
         String prop = System.getProperty("minicloud.server.port");
-        if (prop != null && !prop.trim().isEmpty()) {
+        if (prop != null && !prop.trim().isEmpty() && !prop.contains("${")) {
             return prop.trim();
         }
         String env = System.getenv("MINICLOUD_SERVER_PORT");
@@ -36,5 +40,9 @@ public class ServerConfig {
 
     public static String getBaseUrl() {
         return "http://" + getHost() + ":" + getPort();
+    }
+
+    public static void main(String[] args) {
+        System.out.println("MiniCloud Server Base URL: " + getBaseUrl());
     }
 }

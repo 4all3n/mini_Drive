@@ -38,12 +38,14 @@ public class AuthNetworkService {
 
     public boolean authenticateUser(String username, String password) {
         String jsonPayload = String.format("{\"username\":\"%s\", \"password\":\"%s\"}", username, password);
+        String targetUrl = BASE_URL + "/login";
         
+        System.out.println("DEBUG: Sending Login request to: " + targetUrl);
         System.out.println("DEBUG: Sending Login Payload: " + jsonPayload);
 
         try {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(BASE_URL + "/login"))
+                    .uri(URI.create(targetUrl))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                     .build();
@@ -70,7 +72,7 @@ public class AuthNetworkService {
             return false;
 
         } catch (Exception e) {
-            System.err.println("Network Error Check Spring Boot Server.");
+            System.err.println("Network Error Check Spring Boot Server at: " + targetUrl);
             e.printStackTrace();
             return false;
         }
@@ -78,12 +80,14 @@ public class AuthNetworkService {
 
     public boolean registerUser(String username, String password) {
         String jsonPayload = String.format("{\"username\":\"%s\", \"password\":\"%s\"}", username, password);
+        String targetUrl = BASE_URL + "/register";
         
-        System.out.println("Sending Register Payload: " + jsonPayload);
+        System.out.println("DEBUG: Sending Register request to: " + targetUrl);
+        System.out.println("DEBUG: Sending Register Payload: " + jsonPayload);
 
         try {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(BASE_URL + "/register"))
+                    .uri(URI.create(targetUrl))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                     .build();
@@ -95,7 +99,7 @@ public class AuthNetworkService {
             return response.statusCode() == 200 || response.statusCode() == 201;
 
         } catch (Exception e) {
-            System.err.println("Network Error Check Spring Boot Server.");
+            System.err.println("Network Error Check Spring Boot Server at: " + targetUrl);
             e.printStackTrace();
             return false;
         }

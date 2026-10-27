@@ -8,6 +8,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
+        <minicloud.server.host></minicloud.server.host>
+        <minicloud.server.port></minicloud.server.port>
     </properties>
     <dependencies>
         <dependency>
@@ -36,6 +38,8 @@
                         <configuration>
                             <options>
                                 <option>-Djdk.gtk.version=3</option>
+                                <option>-Dminicloud.server.host=${minicloud.server.host}</option>
+                                <option>-Dminicloud.server.port=${minicloud.server.port}</option>
                             </options>
                             <mainClass>com.minicloud.client.MainApp</mainClass>
                         </configuration>
@@ -45,6 +49,8 @@
                         <configuration>
                             <options>
                                 <option>-agentlib:jdwp=transport=dt_socket,server=n,address=${jpda.address}</option>
+                                <option>-Dminicloud.server.host=${minicloud.server.host}</option>
+                                <option>-Dminicloud.server.port=${minicloud.server.port}</option>
                             </options>
                             <mainClass>com.minicloud.client.MainApp</mainClass>
                         </configuration>
